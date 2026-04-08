@@ -144,8 +144,11 @@ export default function AdminTable({
           <table className="min-w-[520px] w-full border-collapse">
             <thead>
               <tr className="text-left text-xs text-[color:var(--muted)]">
-                {["Clase", "Fecha", "Nombre", "Estado", "Acciones"].map((h) => (
-                  <th key={h} className="pb-3 font-semibold">
+                {["Clase", "Fecha", "Nombre", "Estado", "Acciones"].map((h, i) => (
+                  <th
+                    key={h}
+                    className={`pb-3 font-semibold ${i === 0 ? "pl-5" : ""}`}
+                  >
                     {h}
                   </th>
                 ))}
@@ -175,7 +178,7 @@ export default function AdminTable({
                       style={{ borderLeft: `3px solid ${colors.dot}` }}
                       className="border-t border-[color:var(--border)]"
                     >
-                      <td className="py-4 pr-3 text-sm font-semibold text-[color:var(--navy)]">
+                      <td className="py-4 pl-5 pr-3 text-sm font-semibold text-[color:var(--navy)]">
                         {b.aula}
                       </td>
                       <td className="py-4 pr-3 text-sm text-[color:var(--text)] leading-snug max-w-[220px]">
