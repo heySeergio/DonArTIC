@@ -52,6 +52,16 @@ export function parseBookingFecha(raw: string): Date | null {
   return isValid(d) ? d : null;
 }
 
+/** `YYYY-MM-DD` para indexar celdas; Postgres suele devolver `2026-04-10T00:00:00.000Z`. */
+export function normalizeBookingFechaKey(raw: string): string {
+  if (!raw) return "";
+  const trimmed = raw.trim();
+  const head = trimmed.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(head)) return head;
+  const d = parseBookingFecha(trimmed);
+  return d ? toISODate(d) : head;
+}
+
 export function isFutureDate(date: Date): boolean {
   const now = new Date();
   return isAfter(date, now);

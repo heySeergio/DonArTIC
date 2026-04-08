@@ -9,6 +9,7 @@ import {
   isBookingDay,
   isWorkshopAllowedDate,
   isPastDate,
+  normalizeBookingFechaKey,
   parseISODate,
   WORKSHOP_ALLOWED_RANGE,
   toISODate,
@@ -70,7 +71,7 @@ export default function AdminCalendar({
   const bookingsByDate = useMemo(() => {
     const map: Record<string, Booking> = {};
     for (const b of bookings) {
-      map[b.fecha] = b;
+      map[normalizeBookingFechaKey(b.fecha)] = b;
     }
     return map;
   }, [bookings]);
