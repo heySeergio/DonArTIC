@@ -9,6 +9,7 @@ import {
   loadMyBookings,
   saveMyBookings,
   cancelMyBookingInCache,
+  removeMyBookingFromCache,
 } from "@/lib/storage";
 import { isFutureDate, parseISODate } from "@/lib/dates";
 import Header from "@/components/Header";
@@ -79,6 +80,12 @@ export default function MisReservasPage() {
     return isFutureDate(d);
   };
 
+  const canDelete = (b: Booking) => {
+    if (!profile) return false;
+    if (b.nombre !== profile.nombre) return false;
+    return b.status === "cancelada";
+  };
+
   const onCancel = async (b: Booking) => {
     const res = await fetch(`/api/bookings/${b.id}`, {
       method: "PATCH",
@@ -91,6 +98,18 @@ export default function MisReservasPage() {
     setBookings((prev) =>
       prev.map((x) => (x.id === b.id ? { ...x, status: "cancelada" } : x))
     );
+  };
+
+  const onDelete = async (b: Booking) => {
+    if (!profile) return;
+    const res = await fetch(`/api/bookings/${b.id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ aula: profile.aula, nombre: profile.nombre }),
+    });
+    if (!res.ok) return;
+    removeMyBookingFromCache(b.id);
+    setBookings((prev) => prev.filter((x) => x.id !== b.id));
   };
 
   const headerProfile = useMemo(() => profile ?? undefined, [profile]);
@@ -142,6 +161,8 @@ export default function MisReservasPage() {
                   booking={b}
                   canCancel={canCancel(b)}
                   onCancel={() => onCancel(b)}
+                  canDelete={canDelete(b)}
+                  onDelete={() => onDelete(b)}
                 />
               ))
             )}

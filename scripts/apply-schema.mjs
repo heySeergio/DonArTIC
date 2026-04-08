@@ -54,7 +54,7 @@ async function main() {
     create table if not exists public.bookings (
       id uuid primary key default gen_random_uuid(),
       created_at timestamptz not null default now(),
-      fecha date not null unique,
+      fecha date not null,
       aula text not null,
       nombre text not null,
       idea text not null,
@@ -62,6 +62,13 @@ async function main() {
       status text not null default 'pendiente'
         check (status in ('pendiente', 'confirmada', 'cancelada'))
     )
+  `;
+
+  await sql`alter table public.bookings drop constraint if exists bookings_fecha_key`;
+  await sql`
+    create unique index if not exists bookings_one_active_per_fecha
+      on public.bookings (fecha)
+      where status in ('pendiente', 'confirmada')
   `;
 
   await sql`

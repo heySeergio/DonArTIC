@@ -22,15 +22,27 @@ export async function repoListAllBookings(sql: NeonSql): Promise<Booking[]> {
   return rows as unknown as Booking[];
 }
 
-export async function repoGetBookingByFecha(
+/** Reserva que bloquea el día en el calendario público (pendiente o confirmada). */
+export async function repoGetActiveBookingByFecha(
   sql: NeonSql,
   fechaISO: string
 ): Promise<Booking | null> {
   const rows = await sql`
-    SELECT * FROM bookings WHERE fecha = ${fechaISO}::date LIMIT 1
+    SELECT * FROM bookings
+    WHERE fecha = ${fechaISO}::date
+      AND status IN ('pendiente', 'confirmada')
+    LIMIT 1
   `;
   const list = rows as unknown as Booking[];
   return list[0] ?? null;
+}
+
+/** @deprecated usar repoGetActiveBookingByFecha para disponibilidad */
+export async function repoGetBookingByFecha(
+  sql: NeonSql,
+  fechaISO: string
+): Promise<Booking | null> {
+  return repoGetActiveBookingByFecha(sql, fechaISO);
 }
 
 export async function repoListBookingsByAulaAndNombre(
@@ -58,12 +70,15 @@ export async function repoListBookingsByAula(
   return rows as unknown as Booking[];
 }
 
-export async function repoGetBookingIdByFecha(
+export async function repoGetActiveBookingIdByFecha(
   sql: NeonSql,
   fechaISO: string
 ): Promise<{ id: string } | null> {
   const rows = await sql`
-    SELECT id FROM bookings WHERE fecha = ${fechaISO}::date LIMIT 1
+    SELECT id FROM bookings
+    WHERE fecha = ${fechaISO}::date
+      AND status IN ('pendiente', 'confirmada')
+    LIMIT 1
   `;
   const list = rows as unknown as { id: string }[];
   return list[0] ?? null;
@@ -115,6 +130,37 @@ export async function repoGetBookingMinimalById(
   `;
   const list = rows as unknown as { id: string; fecha: string }[];
   return list[0] ?? null;
+}
+
+export async function repoGetBookingById(
+  sql: NeonSql,
+  id: string
+): Promise<Booking | null> {
+  const rows = await sql`
+    SELECT * FROM bookings WHERE id = ${id}::uuid LIMIT 1
+  `;
+  const list = rows as unknown as Booking[];
+  return list[0] ?? null;
+}
+
+export async function repoDeleteBooking(
+  sql: NeonSql,
+  id: string
+): Promise<{ ok: true; booking: Booking } | { ok: false; notFound: boolean; message: string }> {
+  try {
+    const rows = await sql`
+      DELETE FROM bookings WHERE id = ${id}::uuid RETURNING *
+    `;
+    const list = rows as unknown as Booking[];
+    const booking = list[0];
+    if (!booking) {
+      return { ok: false, notFound: true, message: "Reserva no encontrada." };
+    }
+    return { ok: true, booking };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Error al eliminar la reserva.";
+    return { ok: false, notFound: false, message: msg };
+  }
 }
 
 export async function repoUpdateBookingStatus(

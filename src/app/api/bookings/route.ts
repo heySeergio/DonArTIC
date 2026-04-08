@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSql } from "@/lib/db";
 import {
   repoGetBookingByFecha,
-  repoGetBookingIdByFecha,
+  repoGetActiveBookingIdByFecha,
   repoInsertBooking,
   repoListAllBookings,
   repoListBookingsByAula,
@@ -150,7 +150,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const existing = await repoGetBookingIdByFecha(sql, normalizedFecha);
+    const existing = await repoGetActiveBookingIdByFecha(sql, normalizedFecha);
     if (existing?.id) {
       return NextResponse.json(
         { error: "Esta fecha ya está reservada." },

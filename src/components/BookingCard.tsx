@@ -22,10 +22,14 @@ export default function BookingCard({
   booking,
   canCancel,
   onCancel,
+  canDelete,
+  onDelete,
 }: {
   booking: Booking;
   canCancel: boolean;
   onCancel: () => void;
+  canDelete: boolean;
+  onDelete: () => void;
 }) {
   const d = parseISODate(booking.fecha);
   const accent = statusAccent(booking.status);
@@ -79,7 +83,17 @@ export default function BookingCard({
           </div>
         </div>
 
-        {canCancel ? (
+        {canDelete ? (
+          <div className="shrink-0 self-start">
+            <button
+              type="button"
+              onClick={onDelete}
+              className="h-10 px-3 rounded-lg border border-red-700/40 bg-red-600 text-white font-semibold hover:bg-red-700"
+            >
+              Eliminar reserva
+            </button>
+          </div>
+        ) : canCancel ? (
           <div className="shrink-0 self-start">
             <button
               type="button"

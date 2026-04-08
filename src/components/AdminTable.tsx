@@ -108,6 +108,16 @@ export default function AdminTable({
     setDetailBooking((cur) => (cur?.id === id ? { ...cur, status } : cur));
   };
 
+  const onDelete = async (id: string) => {
+    const res = await fetch(`/api/bookings/${id}`, {
+      method: "DELETE",
+      headers: { "x-admin-password": adminPassword },
+    });
+    if (!res.ok) return;
+    onNeedRefresh();
+    setDetailBooking((cur) => (cur?.id === id ? null : cur));
+  };
+
   return (
     <div className="w-full">
       <div className="card p-4 md:p-5">
@@ -213,18 +223,30 @@ export default function AdminTable({
                             type="button"
                             onClick={() => onPatch(b.id, "confirmada")}
                             className="h-9 px-3 rounded-lg bg-[color:var(--cyan)]/15 text-[color:var(--navy)] font-semibold border border-[color:var(--cyan)]/30 hover:bg-[color:var(--cyan)]/20 disabled:opacity-60 text-sm"
-                            disabled={b.status === "confirmada"}
+                            disabled={
+                              b.status === "confirmada" ||
+                              b.status === "cancelada"
+                            }
                           >
                             Confirmar
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => onPatch(b.id, "cancelada")}
-                            className="h-9 px-3 rounded-lg bg-white/70 text-[color:var(--muted)] font-semibold border border-[color:var(--border)] hover:bg-white disabled:opacity-60 text-sm"
-                            disabled={b.status === "cancelada"}
-                          >
-                            Cancelar
-                          </button>
+                          {b.status === "cancelada" ? (
+                            <button
+                              type="button"
+                              onClick={() => onDelete(b.id)}
+                              className="h-9 px-3 rounded-lg bg-red-600 text-white font-semibold border border-red-700/30 hover:bg-red-700 text-sm"
+                            >
+                              Eliminar reserva
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => onPatch(b.id, "cancelada")}
+                              className="h-9 px-3 rounded-lg bg-white/70 text-[color:var(--muted)] font-semibold border border-[color:var(--border)] hover:bg-white text-sm"
+                            >
+                              Cancelar
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -318,18 +340,30 @@ export default function AdminTable({
                   type="button"
                   onClick={() => onPatch(detailBooking.id, "confirmada")}
                   className="flex-1 min-w-[120px] h-11 rounded-lg bg-[color:var(--cyan)]/15 text-[color:var(--navy)] font-semibold border border-[color:var(--cyan)]/30 hover:bg-[color:var(--cyan)]/20 disabled:opacity-50"
-                  disabled={detailBooking.status === "confirmada"}
+                  disabled={
+                    detailBooking.status === "confirmada" ||
+                    detailBooking.status === "cancelada"
+                  }
                 >
                   Confirmar
                 </button>
-                <button
-                  type="button"
-                  onClick={() => onPatch(detailBooking.id, "cancelada")}
-                  className="flex-1 min-w-[120px] h-11 rounded-lg bg-white/70 text-[color:var(--muted)] font-semibold border border-[color:var(--border)] hover:bg-white disabled:opacity-50"
-                  disabled={detailBooking.status === "cancelada"}
-                >
-                  Cancelar reserva
-                </button>
+                {detailBooking.status === "cancelada" ? (
+                  <button
+                    type="button"
+                    onClick={() => onDelete(detailBooking.id)}
+                    className="flex-1 min-w-[120px] h-11 rounded-lg bg-red-600 text-white font-semibold border border-red-700/30 hover:bg-red-700"
+                  >
+                    Eliminar reserva
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onPatch(detailBooking.id, "cancelada")}
+                    className="flex-1 min-w-[120px] h-11 rounded-lg bg-white/70 text-[color:var(--muted)] font-semibold border border-[color:var(--border)] hover:bg-white"
+                  >
+                    Cancelar reserva
+                  </button>
+                )}
               </div>
             </motion.div>
           </motion.div>

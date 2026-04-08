@@ -13,7 +13,7 @@ import {
   loadMyBookings,
   upsertMyBooking,
 } from "@/lib/storage";
-import { parseISODate, toISODate } from "@/lib/dates";
+import { normalizeBookingFechaKey, parseISODate, toISODate } from "@/lib/dates";
 import Header from "@/components/Header";
 import CalendarGrid from "@/components/CalendarGrid";
 import BookingModal from "@/components/BookingModal";
@@ -56,7 +56,7 @@ export default function CalendarioPage() {
           (b) =>
             b.aula === p.aula &&
             b.nombre === p.nombre &&
-            b.fecha === expectedBookingDate &&
+            normalizeBookingFechaKey(b.fecha) === expectedBookingDate &&
             b.status !== "cancelada"
         );
 

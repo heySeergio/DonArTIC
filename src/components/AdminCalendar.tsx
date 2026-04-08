@@ -16,6 +16,7 @@ import {
   formatSpanishDate,
   formatSpanishWeekday,
 } from "@/lib/dates";
+import { bookingsByDatePreferActive } from "@/lib/bookings-map";
 import type { Booking, BookingStatus } from "@/lib/types";
 import {
   bookingAulaAccentColor,
@@ -68,13 +69,10 @@ export default function AdminCalendar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey, adminPassword]);
 
-  const bookingsByDate = useMemo(() => {
-    const map: Record<string, Booking> = {};
-    for (const b of bookings) {
-      map[normalizeBookingFechaKey(b.fecha)] = b;
-    }
-    return map;
-  }, [bookings]);
+  const bookingsByDate = useMemo(
+    () => bookingsByDatePreferActive(bookings),
+    [bookings]
+  );
 
   const gridDays = useMemo(() => getMonthRangeGrid(monthDate), [monthDate]);
   const weeks = useMemo(() => chunkWeeks(gridDays), [gridDays]);
@@ -98,6 +96,18 @@ export default function AdminCalendar({
       },
       body: JSON.stringify({ status }),
     });
+    onNeedRefresh();
+  };
+
+  const removeBooking = async (booking: Booking) => {
+    const res = await fetch(`/api/bookings/${booking.id}`, {
+      method: "DELETE",
+      headers: { "x-admin-password": adminPassword },
+    });
+    if (!res.ok) return;
+    if (selectedISO === normalizeBookingFechaKey(booking.fecha)) {
+      setSelectedISO(null);
+    }
     onNeedRefresh();
   };
 
@@ -219,8 +229,14 @@ export default function AdminCalendar({
                       <span
                         aria-label="Hoy"
                         title="Hoy"
-                        className="absolute top-2 left-2 w-2.5 h-2.5 rounded-full bg-[color:var(--cyan)]"
-                      />
+                        className={`absolute top-1 right-1.5 text-[9px] font-extrabold uppercase tracking-wide leading-none pointer-events-none ${
+                          isSelected
+                            ? "text-white"
+                            : "text-[color:var(--cyan)]"
+                        }`}
+                      >
+                        HOY
+                      </span>
                     ) : null}
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs font-semibold">
@@ -325,19 +341,31 @@ export default function AdminCalendar({
                     <button
                       type="button"
                       onClick={() => patch(selected, "confirmada")}
-                      disabled={selected.status === "confirmada"}
+                      disabled={
+                        selected.status === "confirmada" ||
+                        selected.status === "cancelada"
+                      }
                       className="flex-1 h-10 rounded-lg bg-[color:var(--cyan)]/15 border border-[color:var(--cyan)]/30 text-[color:var(--navy)] font-semibold hover:bg-[color:var(--cyan)]/20 disabled:opacity-60"
                     >
                       Confirmar
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => patch(selected, "cancelada")}
-                      disabled={selected.status === "cancelada"}
-                      className="flex-1 h-10 rounded-lg bg-white/70 border border-[color:var(--border)] text-[color:var(--muted)] font-semibold hover:bg-white disabled:opacity-60"
-                    >
-                      Cancelar
-                    </button>
+                    {selected.status === "cancelada" ? (
+                      <button
+                        type="button"
+                        onClick={() => removeBooking(selected)}
+                        className="flex-1 h-10 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 border border-red-700/30"
+                      >
+                        Eliminar reserva
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => patch(selected, "cancelada")}
+                        className="flex-1 h-10 rounded-lg bg-white/70 border border-[color:var(--border)] text-[color:var(--muted)] font-semibold hover:bg-white"
+                      >
+                        Cancelar
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

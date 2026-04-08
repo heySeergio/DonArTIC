@@ -59,6 +59,10 @@ export function cancelMyBookingInCache(id: string, status: BookingStatus) {
   }
 }
 
+export function removeMyBookingFromCache(id: string) {
+  saveMyBookings(loadMyBookings().filter((b) => b.id !== id));
+}
+
 export function getNextBookingAfterISO(): string | null {
   try {
     const raw = localStorage.getItem(NEXT_BOOKING_AFTER_KEY);

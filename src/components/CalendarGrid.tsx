@@ -80,7 +80,9 @@ export default function CalendarGrid({
             const res = await fetch(`/api/bookings?fecha=${iso}`);
             if (!res.ok) return [iso, null] as const;
             const booking = (await res.json()) as Booking | null;
-            return [iso, booking] as const;
+            const active =
+              booking && booking.status !== "cancelada" ? booking : null;
+            return [iso, active] as const;
           })
         );
 
