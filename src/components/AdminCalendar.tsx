@@ -16,57 +16,10 @@ import {
   formatSpanishWeekday,
 } from "@/lib/dates";
 import type { Booking, BookingStatus } from "@/lib/types";
-
-function dotByStatus(status: BookingStatus) {
-  switch (status) {
-    case "pendiente":
-      return "var(--yellow)";
-    case "confirmada":
-      return "var(--cyan)";
-    case "cancelada":
-      return "var(--muted)";
-  }
-}
-
-function bookingSpecialColor(aula: string): string | null {
-  const normalized = aula
-    .trim()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase();
-
-  const compact = normalized.replace(/\s+/g, "");
-  const m2 = compact.match(/^2(?:º|°)([A-F])$/);
-  if (m2?.[1] && ["C", "D", "E", "F"].includes(m2[1])) return "#91F539";
-
-  // Verde para aulas AL (AL 1, AL 2, ...)
-  if (normalized.startsWith("AL")) return "#91F539";
-
-  if (normalized === "INFANTIL") return "#FEF502";
-  if (normalized === "MUSICA") return "#FEF502";
-  const tvaMatch = normalized.match(/^TVA\s*(\d+)$/);
-  if (tvaMatch?.[1] === "5") return "#FEF502";
-
-  if (normalized.startsWith("TVA")) return "#0328B2";
-  if (normalized.includes("CONFECCION")) return "#0328B2";
-  return null;
-}
-
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  const clean = hex.replace("#", "").trim();
-  if (clean.length !== 6) return null;
-  const r = parseInt(clean.slice(0, 2), 16);
-  const g = parseInt(clean.slice(2, 4), 16);
-  const b = parseInt(clean.slice(4, 6), 16);
-  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null;
-  return { r, g, b };
-}
-
-function rgbaFromHex(hex: string, alpha: number): string {
-  const rgb = hexToRgb(hex);
-  if (!rgb) return `rgba(0,0,0,${alpha})`;
-  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
-}
+import {
+  bookingAulaAccentColor,
+  rgbaFromHex,
+} from "@/lib/aula-colors";
 
 export default function AdminCalendar({
   adminPassword,
@@ -214,21 +167,9 @@ export default function AdminCalendar({
               const isSelected = selectedISO === iso;
               const allowed = isWorkshopAllowedDate(date);
               const isToday = iso === todayISO;
-              const specialColor = booked ? bookingSpecialColor(booked.aula) : null;
-              let finalSpecialColor = specialColor;
-              // Asignaciones manuales por fecha (marzo 2026)
-              if (booked) {
-                if (iso === "2026-03-23" || iso === "2026-03-24") {
-                  finalSpecialColor = "#91F539";
-                } else if (iso === "2026-03-20") {
-                  finalSpecialColor = "#FEF502";
-                }
-              }
-
-              const displayAula =
-                booked && (iso === "2026-03-23" || iso === "2026-03-24")
-                  ? "2ºF"
-                  : booked?.aula;
+              const accentColor = booked
+                ? bookingAulaAccentColor(booked.aula)
+                : null;
 
               if (loading) {
                 return (
@@ -263,10 +204,10 @@ export default function AdminCalendar({
                         : "bg-transparent border-transparent text-[color:var(--muted)] cursor-not-allowed"
                   }`}
                   style={
-                    booked && finalSpecialColor
+                    booked && accentColor
                       ? {
-                          backgroundColor: rgbaFromHex(finalSpecialColor, 0.15),
-                          borderColor: rgbaFromHex(finalSpecialColor, 0.35),
+                          backgroundColor: rgbaFromHex(accentColor, 0.15),
+                          borderColor: rgbaFromHex(accentColor, 0.35),
                         }
                       : undefined
                   }
@@ -284,17 +225,17 @@ export default function AdminCalendar({
                       <span className="text-xs font-semibold">
                         {date.getDate()}
                       </span>
-                      {booked && (
+                      {booked && accentColor ? (
                         <span
-                    style={{
-                            backgroundColor: finalSpecialColor ?? dotByStatus(booked.status),
+                          style={{
+                            backgroundColor: accentColor,
                             width: 8,
                             height: 8,
                             borderRadius: 9999,
                             flex: "0 0 auto",
                           }}
                         />
-                      )}
+                      ) : null}
                     </div>
 
                     <div
@@ -305,7 +246,7 @@ export default function AdminCalendar({
                         WebkitLineClamp: 2,
                       }}
                     >
-                      {booked ? displayAula : allowed ? bookingDayText(date) : "—"}
+                      {booked ? booked.aula : allowed ? bookingDayText(date) : "—"}
                     </div>
                   </div>
                 </button>

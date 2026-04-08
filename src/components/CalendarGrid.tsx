@@ -13,61 +13,10 @@ import {
   WORKSHOP_ALLOWED_RANGE,
 } from "@/lib/dates";
 import type { Booking } from "@/lib/types";
-
-function statusDotStyle(status: Booking["status"]) {
-  switch (status) {
-    case "confirmada":
-      return { backgroundColor: "var(--cyan)" };
-    case "pendiente":
-      return { backgroundColor: "var(--yellow)" };
-    case "cancelada":
-      return { backgroundColor: "var(--muted)" };
-  }
-}
-
-function bookingSpecialColor(aula: string): string | null {
-  const normalized = aula
-    .trim()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase();
-
-  // Verde para 2º F/E/D/C (según indicación del usuario)
-  const compact = normalized.replace(/\s+/g, "");
-  const m2 = compact.match(/^2(?:º|°)([A-F])$/);
-  if (m2?.[1] && ["C", "D", "E", "F"].includes(m2[1])) return "#91F539";
-
-  // Verde para aulas AL (AL 1, AL 2, ...)
-  if (normalized.startsWith("AL")) return "#91F539";
-
-  // Amarillo para INFANTIL, MUSICA y TVA 5
-  if (normalized === "INFANTIL") return "#FEF502";
-  if (normalized === "MUSICA") return "#FEF502";
-  const tvaMatch = normalized.match(/^TVA\s*(\d+)$/);
-  if (tvaMatch?.[1] === "5") return "#FEF502";
-
-  // Azul para TVA (no 5) y CONFECCION
-  if (normalized.startsWith("TVA")) return "#0328B2";
-  if (normalized.includes("CONFECCION")) return "#0328B2";
-
-  return null;
-}
-
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  const clean = hex.replace("#", "").trim();
-  if (clean.length !== 6) return null;
-  const r = parseInt(clean.slice(0, 2), 16);
-  const g = parseInt(clean.slice(2, 4), 16);
-  const b = parseInt(clean.slice(4, 6), 16);
-  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null;
-  return { r, g, b };
-}
-
-function rgbaFromHex(hex: string, alpha: number): string {
-  const rgb = hexToRgb(hex);
-  if (!rgb) return `rgba(0,0,0,${alpha})`;
-  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
-}
+import {
+  bookingAulaAccentColor,
+  rgbaFromHex,
+} from "@/lib/aula-colors";
 
 export default function CalendarGrid({
   selectedFecha,
@@ -257,26 +206,16 @@ export default function CalendarGrid({
 
             if (bookingDay) {
               if (occupied) {
-                let specialColor = bookingSpecialColor(booked.aula);
-                // Asignaciones manuales por fecha (marzo 2026)
-                if (iso === "2026-03-23" || iso === "2026-03-24") {
-                  specialColor = "#91F539";
-                } else if (iso === "2026-03-20") {
-                  specialColor = "#FEF502";
-                }
+                const accentColor = bookingAulaAccentColor(booked.aula);
                 return (
                   <div
                     key={iso}
                     title="Ocupado"
-                    className={`${baseClasses} cursor-not-allowed bg-[color:var(--magenta)]/15 border-[color:var(--magenta)]/35`}
-                    style={
-                      specialColor
-                        ? {
-                            backgroundColor: rgbaFromHex(specialColor, 0.15),
-                            borderColor: rgbaFromHex(specialColor, 0.35),
-                          }
-                        : undefined
-                    }
+                    className={`${baseClasses} cursor-not-allowed bg-white/50 border-[color:var(--border)] text-[color:var(--muted)]`}
+                    style={{
+                      backgroundColor: rgbaFromHex(accentColor, 0.15),
+                      borderColor: rgbaFromHex(accentColor, 0.35),
+                    }}
                   >
                     {isToday ? (
                       <span
@@ -290,9 +229,7 @@ export default function CalendarGrid({
                     </span>
                     <span
                       style={{
-                        backgroundColor:
-                          specialColor ??
-                          statusDotStyle(booked.status).backgroundColor,
+                        backgroundColor: accentColor,
                         position: "absolute",
                         top: 8,
                         right: 8,
@@ -480,15 +417,9 @@ export default function CalendarGrid({
                       const iso = toISODate(d);
                       const booked = bookingsByDate[iso];
                       const isToday = iso === todayISO;
-                      let specialColor = booked ? bookingSpecialColor(booked.aula) : null;
-                      // Asignaciones manuales por fecha (marzo 2026)
-                      if (booked) {
-                        if (iso === "2026-03-23" || iso === "2026-03-24") {
-                          specialColor = "#91F539";
-                        } else if (iso === "2026-03-20") {
-                          specialColor = "#FEF502";
-                        }
-                      }
+                      const accentColor = booked
+                        ? bookingAulaAccentColor(booked.aula)
+                        : null;
                       const past = isPastDate(d);
                       const isSelected = selectedFecha === iso;
                       const cooldownBlocked = cooldownUntilISO
@@ -513,9 +444,7 @@ export default function CalendarGrid({
                             isSelected
                               ? "bg-[color:var(--brown)] border-[color:var(--brown)] text-white"
                               : booked
-                                ? specialColor
-                                  ? "bg-white/50 border-[color:var(--border)] text-[color:var(--muted)] cursor-not-allowed"
-                                  : "bg-[color:var(--magenta)]/15 border-[color:var(--magenta)]/35 text-[color:var(--muted)] cursor-not-allowed"
+                                ? "bg-white/50 border-[color:var(--border)] text-[color:var(--muted)] cursor-not-allowed"
                                 : past
                                   ? "bg-[color:var(--border)]/80 border-[color:var(--border)] text-[color:var(--muted)] cursor-not-allowed"
                                   : cooldownBlocked
@@ -530,18 +459,16 @@ export default function CalendarGrid({
                                 : undefined
                           }
                           style={
-                            booked && specialColor
+                            booked && accentColor
                               ? {
-                                  backgroundColor: rgbaFromHex(specialColor, 0.15),
-                                  borderColor: rgbaFromHex(specialColor, 0.35),
+                                  backgroundColor: rgbaFromHex(accentColor, 0.15),
+                                  borderColor: rgbaFromHex(accentColor, 0.35),
                                 }
                               : undefined
                           }
                         >
                           <span className="sr-only">
-                            {booked && specialColor
-                              ? "Marcado en color TVA/Confección"
-                              : ""}
+                            {booked ? "Día con reserva ocupada" : ""}
                           </span>
                           <div className="flex items-center gap-2.5 min-w-0 flex-1">
                             {isToday || booked ? (
@@ -552,12 +479,10 @@ export default function CalendarGrid({
                                     className="w-2.5 h-2.5 rounded-full bg-[color:var(--cyan)] ring-2 ring-[color:var(--cyan)]/25"
                                   />
                                 ) : null}
-                                {booked ? (
+                                {booked && accentColor ? (
                                   <span
                                     style={{
-                                      backgroundColor:
-                                        specialColor ??
-                                        statusDotStyle(booked.status).backgroundColor,
+                                      backgroundColor: accentColor,
                                       width: 10,
                                       height: 10,
                                       borderRadius: 999,
