@@ -16,19 +16,15 @@ import {
   toISODate,
 } from "@/lib/dates";
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+/** Contraseña de admin fija (no depende de variables de entorno). */
+const ADMIN_PASSWORD = "EFFA26";
 
 const DB_MISSING =
   "La base de datos no está configurada. Añade DATABASE_URL en Vercel (entorno del servidor).";
 
 function requireAdmin(request: Request) {
-  const provided = request.headers.get("x-admin-password");
-  if (!ADMIN_PASSWORD) {
-    return NextResponse.json(
-      { error: "ADMIN_PASSWORD no configurada en el servidor." },
-      { status: 500 }
-    );
-  }
+  const provided =
+    request.headers.get("x-admin-password")?.trim() ?? "";
   if (!provided || provided !== ADMIN_PASSWORD) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }

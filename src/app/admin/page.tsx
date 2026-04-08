@@ -50,18 +50,19 @@ export default function AdminPage() {
 
   const verify = async () => {
     setError(null);
+    const pwd = passwordInput.trim();
     try {
       const res = await fetch("/api/bookings", {
-        headers: { "x-admin-password": passwordInput },
+        headers: { "x-admin-password": pwd },
       });
       if (!res.ok) {
         setError("Contraseña incorrecta.");
         return;
       }
       localStorage.setItem(ADMIN_AUTH_KEY, "true");
-      sessionStorage.setItem(ADMIN_PASSWORD_SESSION_KEY, passwordInput);
+      sessionStorage.setItem(ADMIN_PASSWORD_SESSION_KEY, pwd);
       setAdminAuth(true);
-      setAdminPassword(passwordInput);
+      setAdminPassword(pwd);
     } catch {
       setError("No se pudo verificar la contraseña.");
     }

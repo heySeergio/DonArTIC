@@ -7,14 +7,15 @@ import {
 } from "@/lib/bookings-repo";
 import { isFutureDate, parseISODate } from "@/lib/dates";
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+/** Contraseña de admin fija (no depende de variables de entorno). */
+const ADMIN_PASSWORD = "EFFA26";
 
 const DB_MISSING =
   "La base de datos no está configurada. Añade DATABASE_URL en Vercel (entorno del servidor).";
 
 function getIsAdmin(request: Request) {
-  const provided = request.headers.get("x-admin-password");
-  if (!ADMIN_PASSWORD) return false;
+  const provided =
+    request.headers.get("x-admin-password")?.trim() ?? "";
   return !!provided && provided === ADMIN_PASSWORD;
 }
 
