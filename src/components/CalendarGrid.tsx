@@ -159,7 +159,8 @@ export default function CalendarGrid({
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between gap-3 mb-4">
+      {/* Solo escritorio: la vista móvil lleva su propia cabecera sticky */}
+      <div className="hidden md:flex items-center justify-between gap-3 mb-4">
         <h3 className="font-headings text-lg text-[color:var(--navy)]">
           {monthTitle}
         </h3>
@@ -408,45 +409,47 @@ export default function CalendarGrid({
         </div>
       </div>
 
-      {/* Mobile list */}
+      {/* Mobile list: una sola cabecera de mes + scroll solo de la página */}
       <div className="md:hidden">
-        <div className="flex items-center justify-between mb-3">
-          <div className="font-headings text-[16px] text-[color:var(--navy)]">
-            {monthTitle}
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() =>
-                setMonthDate((d) => {
-                  const next = addMonths(d, -1);
-                  return next < minMonth ? minMonth : next;
-                })
-              }
-              disabled={monthDate <= minMonth}
-              className="h-9 w-9 rounded-full border border-[color:var(--border)] bg-white/70 hover:bg-white text-[color:var(--navy)]"
-              aria-label="Mes anterior"
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                setMonthDate((d) => {
-                  const next = addMonths(d, 1);
-                  return next > maxMonth ? maxMonth : next;
-                })
-              }
-              disabled={monthDate >= maxMonth}
-              className="h-9 w-9 rounded-full border border-[color:var(--border)] bg-white/70 hover:bg-white text-[color:var(--navy)]"
-              aria-label="Mes siguiente"
-            >
-              ›
-            </button>
+        <div className="sticky top-0 z-10 -mx-4 px-4 py-3 mb-3 bg-[color:var(--bg)]/95 backdrop-blur-sm border-b border-[color:var(--border)]/60">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="font-headings text-lg text-[color:var(--navy)] capitalize">
+              {monthTitle}
+            </h3>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setMonthDate((d) => {
+                    const next = addMonths(d, -1);
+                    return next < minMonth ? minMonth : next;
+                  })
+                }
+                disabled={monthDate <= minMonth}
+                className="h-9 w-9 rounded-full border border-[color:var(--border)] bg-white/70 hover:bg-white text-[color:var(--navy)]"
+                aria-label="Mes anterior"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setMonthDate((d) => {
+                    const next = addMonths(d, 1);
+                    return next > maxMonth ? maxMonth : next;
+                  })
+                }
+                disabled={monthDate >= maxMonth}
+                className="h-9 w-9 rounded-full border border-[color:var(--border)] bg-white/70 hover:bg-white text-[color:var(--navy)]"
+                aria-label="Mes siguiente"
+              >
+                ›
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="max-h-[520px] overflow-y-auto pb-2">
+        <div className="pb-2">
           {loading ? (
             <div className="space-y-3">
               {Array.from({ length: 8 }).map((_, i) => (
@@ -506,7 +509,7 @@ export default function CalendarGrid({
                           type="button"
                           onClick={() => onSelectFecha(iso)}
                           disabled={disabled}
-                          className={`relative w-full h-12 rounded-lg border text-left px-3 flex items-center justify-between gap-3 transition-colors ${
+                          className={`w-full min-h-12 rounded-lg border text-left px-3 py-2.5 flex items-center justify-between gap-3 transition-colors ${
                             isSelected
                               ? "bg-[color:var(--brown)] border-[color:var(--brown)] text-white"
                               : booked
@@ -535,39 +538,57 @@ export default function CalendarGrid({
                               : undefined
                           }
                         >
-                          {isToday ? (
-                            <span
-                              aria-label="Hoy"
-                              title="Hoy"
-                              className="absolute top-2 left-2 w-2.5 h-2.5 rounded-full bg-[color:var(--cyan)]"
-                            />
-                          ) : null}
                           <span className="sr-only">
                             {booked && specialColor
                               ? "Marcado en color TVA/Confección"
                               : ""}
                           </span>
-                          <div className="flex items-center gap-3">
-                            {booked && (
-                              <span
-                                style={{
-                                  backgroundColor:
-                                    specialColor ??
-                                    statusDotStyle(booked.status).backgroundColor,
-                                  width: 10,
-                                  height: 10,
-                                  borderRadius: 999,
-                                }}
-                              />
-                            )}
-                            <div className="flex flex-col">
-                              <span className="text-sm font-semibold">{dayLabel}</span>
-                              <span className="text-xs opacity-80">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            {isToday || booked ? (
+                              <div className="flex shrink-0 items-center justify-center gap-1">
+                                {isToday ? (
+                                  <span
+                                    title="Hoy"
+                                    className="w-2.5 h-2.5 rounded-full bg-[color:var(--cyan)] ring-2 ring-[color:var(--cyan)]/25"
+                                  />
+                                ) : null}
+                                {booked ? (
+                                  <span
+                                    style={{
+                                      backgroundColor:
+                                        specialColor ??
+                                        statusDotStyle(booked.status).backgroundColor,
+                                      width: 10,
+                                      height: 10,
+                                      borderRadius: 999,
+                                    }}
+                                  />
+                                ) : null}
+                              </div>
+                            ) : null}
+                            <div className="flex flex-col min-w-0 text-left">
+                              <span className="text-sm font-semibold leading-tight">
+                                {dayLabel}
+                                {isToday ? (
+                                  <span
+                                    className={`ml-1.5 text-[11px] font-semibold uppercase tracking-wide ${
+                                      isSelected
+                                        ? "text-white/90"
+                                        : "text-[color:var(--cyan)] opacity-90"
+                                    }`}
+                                  >
+                                    Hoy
+                                  </span>
+                                ) : null}
+                              </span>
+                              <span className="text-xs opacity-80 leading-tight mt-0.5">
                                 {format(d, "d MMMM", { locale: es })}
                               </span>
                             </div>
                           </div>
-                          <span className="text-sm font-semibold">{`13:00–14:30h`}</span>
+                          <span className="text-sm font-semibold shrink-0 tabular-nums">
+                            13:00–14:30h
+                          </span>
                         </button>
                       );
                     })}
