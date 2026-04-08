@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import type { Booking, BookingStatus } from "@/lib/types";
-import { formatSpanishWeekday, parseISODate } from "@/lib/dates";
+import {
+  formatSpanishDateLong,
+  parseBookingFecha,
+} from "@/lib/dates";
 
 function statusColors(status: BookingStatus) {
   switch (status) {
@@ -27,6 +31,28 @@ function statusColors(status: BookingStatus) {
   }
 }
 
+function statusLabel(status: BookingStatus) {
+  switch (status) {
+    case "pendiente":
+      return "Pendiente";
+    case "confirmada":
+      return "Confirmada";
+    case "cancelada":
+      return "Cancelada";
+  }
+}
+
+function DetailRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="border-b border-[color:var(--border)]/80 py-3 last:border-0">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--muted)]">
+        {label}
+      </p>
+      <div className="mt-1 text-sm text-[color:var(--text)]">{children}</div>
+    </div>
+  );
+}
+
 export default function AdminTable({
   adminPassword,
   refreshKey,
@@ -39,6 +65,7 @@ export default function AdminTable({
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<"all" | BookingStatus>("all");
+  const [detailBooking, setDetailBooking] = useState<Booking | null>(null);
 
   async function load() {
     setLoading(true);
@@ -78,6 +105,7 @@ export default function AdminTable({
     });
     if (!res.ok) return;
     onNeedRefresh();
+    setDetailBooking((cur) => (cur?.id === id ? { ...cur, status } : cur));
   };
 
   return (
@@ -113,19 +141,10 @@ export default function AdminTable({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-[860px] w-full border-collapse">
+          <table className="min-w-[520px] w-full border-collapse">
             <thead>
               <tr className="text-left text-xs text-[color:var(--muted)]">
-                {[
-                  "Fecha",
-                  "Día",
-                  "Aula",
-                  "Nombre",
-                  "Alumnos",
-                  "Idea",
-                  "Estado",
-                  "Acciones",
-                ].map((h) => (
+                {["Clase", "Fecha", "Nombre", "Estado", "Acciones"].map((h) => (
                   <th key={h} className="pb-3 font-semibold">
                     {h}
                   </th>
@@ -135,44 +154,34 @@ export default function AdminTable({
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-10 text-center">
+                  <td colSpan={5} className="py-10 text-center">
                     <div className="inline-block h-10 w-10 rounded-full border border-[color:var(--border)] animate-spin" />
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-10 text-center text-[color:var(--muted)]">
+                  <td colSpan={5} className="py-10 text-center text-[color:var(--muted)]">
                     No hay reservas para este filtro.
                   </td>
                 </tr>
               ) : (
                 filtered.map((b) => {
-                  const d = parseISODate(b.fecha);
+                  const d = parseBookingFecha(b.fecha);
                   const colors = statusColors(b.status);
+                  const fechaBonita = d ? formatSpanishDateLong(d) : b.fecha;
                   return (
                     <tr
                       key={b.id}
                       style={{ borderLeft: `3px solid ${colors.dot}` }}
                       className="border-t border-[color:var(--border)]"
                     >
-                      <td className="py-4 pr-3 text-sm font-semibold">
-                        {b.fecha}
+                      <td className="py-4 pr-3 text-sm font-semibold text-[color:var(--navy)]">
+                        {b.aula}
                       </td>
-                      <td className="py-4 pr-3 text-sm text-[color:var(--text)]">
-                        {d
-                          ? `${formatSpanishWeekday(d)}`
-                          : ""}
+                      <td className="py-4 pr-3 text-sm text-[color:var(--text)] leading-snug max-w-[220px]">
+                        {fechaBonita}
                       </td>
-                      <td className="py-4 pr-3 text-sm">{b.aula}</td>
                       <td className="py-4 pr-3 text-sm">{b.nombre}</td>
-                      <td className="py-4 pr-3 text-sm font-semibold">
-                        {b.num_alumnos}
-                      </td>
-                      <td className="py-4 pr-3 text-sm max-w-[240px]">
-                        <div className="truncate">
-                          {b.idea}
-                        </div>
-                      </td>
                       <td className="py-4 pr-3 text-sm">
                         <span
                           className="inline-flex items-center rounded-full px-3 py-1 font-semibold border"
@@ -185,19 +194,22 @@ export default function AdminTable({
                                 : colors.fg,
                           }}
                         >
-                          {b.status === "pendiente"
-                            ? "Pendiente"
-                            : b.status === "confirmada"
-                              ? "Confirmada"
-                              : "Cancelada"}
+                          {statusLabel(b.status)}
                         </span>
                       </td>
                       <td className="py-4">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setDetailBooking(b)}
+                            className="h-9 px-3 rounded-lg bg-white/70 text-[color:var(--navy)] font-semibold border border-[color:var(--border)] hover:bg-white text-sm"
+                          >
+                            Ver detalles
+                          </button>
                           <button
                             type="button"
                             onClick={() => onPatch(b.id, "confirmada")}
-                            className="h-9 px-3 rounded-lg bg-[color:var(--cyan)]/15 text-[color:var(--navy)] font-semibold border border-[color:var(--cyan)]/30 hover:bg-[color:var(--cyan)]/20 disabled:opacity-60"
+                            className="h-9 px-3 rounded-lg bg-[color:var(--cyan)]/15 text-[color:var(--navy)] font-semibold border border-[color:var(--cyan)]/30 hover:bg-[color:var(--cyan)]/20 disabled:opacity-60 text-sm"
                             disabled={b.status === "confirmada"}
                           >
                             Confirmar
@@ -205,7 +217,7 @@ export default function AdminTable({
                           <button
                             type="button"
                             onClick={() => onPatch(b.id, "cancelada")}
-                            className="h-9 px-3 rounded-lg bg-white/70 text-[color:var(--muted)] font-semibold border border-[color:var(--border)] hover:bg-white disabled:opacity-60"
+                            className="h-9 px-3 rounded-lg bg-white/70 text-[color:var(--muted)] font-semibold border border-[color:var(--border)] hover:bg-white disabled:opacity-60 text-sm"
                             disabled={b.status === "cancelada"}
                           >
                             Cancelar
@@ -220,7 +232,106 @@ export default function AdminTable({
           </table>
         </div>
       </div>
+
+      <AnimatePresence>
+        {detailBooking ? (
+          <motion.div
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 overflow-y-auto"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            <button
+              type="button"
+              aria-label="Cerrar"
+              className="absolute inset-0 bg-black/20 backdrop-blur-[1px]"
+              onClick={() => setDetailBooking(null)}
+            />
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="admin-detail-title"
+              initial={{ y: 16, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 16, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="relative z-10 w-full max-w-md card p-5 md:p-6 shadow-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-3 mb-1">
+                <h3
+                  id="admin-detail-title"
+                  className="font-headings text-lg text-[color:var(--brown)]"
+                >
+                  Detalle de la reserva
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setDetailBooking(null)}
+                  className="text-sm text-[color:var(--muted)] hover:text-[color:var(--text)] shrink-0"
+                >
+                  Cerrar
+                </button>
+              </div>
+              <p className="text-xs text-[color:var(--muted)] mb-4">
+                Horario del taller: 13:00 – 14:30h
+              </p>
+
+              <div className="rounded-xl border border-[color:var(--border)] bg-white/60 px-4">
+                <DetailRow label="Fecha">
+                  {(() => {
+                    const d = parseBookingFecha(detailBooking.fecha);
+                    return d ? formatSpanishDateLong(d) : detailBooking.fecha;
+                  })()}
+                </DetailRow>
+                <DetailRow label="Clase">{detailBooking.aula}</DetailRow>
+                <DetailRow label="Nombre (docente)">{detailBooking.nombre}</DetailRow>
+                <DetailRow label="N.º de alumnos">{detailBooking.num_alumnos}</DetailRow>
+                <DetailRow label="Idea del taller">
+                  <p className="whitespace-pre-wrap leading-relaxed">
+                    {detailBooking.idea}
+                  </p>
+                </DetailRow>
+                <DetailRow label="Estado">
+                  <span
+                    className="inline-flex items-center rounded-full px-3 py-1 font-semibold border text-xs"
+                    style={{
+                      backgroundColor: statusColors(detailBooking.status).bg,
+                      color: statusColors(detailBooking.status).fg,
+                      borderColor:
+                        detailBooking.status === "cancelada"
+                          ? "var(--border)"
+                          : statusColors(detailBooking.status).fg,
+                    }}
+                  >
+                    {statusLabel(detailBooking.status)}
+                  </span>
+                </DetailRow>
+              </div>
+
+              <div className="flex flex-wrap gap-2 mt-5">
+                <button
+                  type="button"
+                  onClick={() => onPatch(detailBooking.id, "confirmada")}
+                  className="flex-1 min-w-[120px] h-11 rounded-lg bg-[color:var(--cyan)]/15 text-[color:var(--navy)] font-semibold border border-[color:var(--cyan)]/30 hover:bg-[color:var(--cyan)]/20 disabled:opacity-50"
+                  disabled={detailBooking.status === "confirmada"}
+                >
+                  Confirmar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onPatch(detailBooking.id, "cancelada")}
+                  className="flex-1 min-w-[120px] h-11 rounded-lg bg-white/70 text-[color:var(--muted)] font-semibold border border-[color:var(--border)] hover:bg-white disabled:opacity-50"
+                  disabled={detailBooking.status === "cancelada"}
+                >
+                  Cancelar reserva
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
-

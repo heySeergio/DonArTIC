@@ -36,6 +36,22 @@ export function formatSpanishWeekday(date: Date): string {
   return format(date, "EEEE", { locale: es }).toLowerCase();
 }
 
+/** “Viernes, 10 de abril de 2026” (para tablas / admin). */
+export function formatSpanishDateLong(date: Date): string {
+  const s = format(date, "EEEE, d 'de' MMMM yyyy", { locale: es });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Acepta `YYYY-MM-DD` o ISO completo desde Postgres/JSON. */
+export function parseBookingFecha(raw: string): Date | null {
+  if (!raw) return null;
+  const ymd = raw.slice(0, 10);
+  const fromYmd = parseISODate(ymd);
+  if (fromYmd) return fromYmd;
+  const d = parseISO(raw);
+  return isValid(d) ? d : null;
+}
+
 export function isFutureDate(date: Date): boolean {
   const now = new Date();
   return isAfter(date, now);
