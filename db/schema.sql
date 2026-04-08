@@ -1,7 +1,5 @@
--- DonArTIC Reservas (CEE Príncipe Don Juan)
--- Tabla principal: bookings
---
--- Para Neon, usa también `db/schema.sql` (sin pasos específicos de Supabase).
+-- DonArTIC · Neon / PostgreSQL
+-- Ejecutar una vez en el SQL Editor de Neon (o psql).
 
 create extension if not exists pgcrypto;
 
@@ -17,11 +15,5 @@ create table if not exists public.bookings (
     check (status in ('pendiente', 'confirmada', 'cancelada'))
 );
 
--- RLS: la app opera vía API routes con service role,
--- así que bloqueamos acceso directo desde clientes.
-alter table public.bookings enable row level security;
-
-revoke all on table public.bookings from anon, authenticated;
-
--- No policies a propósito (servirá como “deny by default”).
-
+create index if not exists bookings_aula_fecha_idx on public.bookings (aula, fecha);
+create index if not exists bookings_nombre_fecha_idx on public.bookings (nombre, fecha);

@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSql } from "@/lib/db";
+import {
+  isValidBookingId,
+  repoGetBookingMinimalById,
+  repoUpdateBookingStatus,
+} from "@/lib/bookings-repo";
 import { isFutureDate, parseISODate } from "@/lib/dates";
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
+const DB_MISSING =
+  "La base de datos no está configurada. Añade DATABASE_URL en Vercel (entorno del servidor).";
 
 function getIsAdmin(request: Request) {
   const provided = request.headers.get("x-admin-password");
@@ -16,11 +24,13 @@ export async function PATCH(
 ) {
   const { id } = await params;
 
-  if (!supabaseAdmin) {
-    return NextResponse.json(
-      { error: "Supabase no configurada en el servidor." },
-      { status: 500 }
-    );
+  const sql = getSql();
+  if (!sql) {
+    return NextResponse.json({ error: DB_MISSING }, { status: 500 });
+  }
+
+  if (!isValidBookingId(id)) {
+    return NextResponse.json({ error: "Identificador de reserva inválido." }, { status: 400 });
   }
 
   const body = await request.json().catch(() => null);
@@ -42,44 +52,46 @@ export async function PATCH(
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
-  // Cancelación pública: solo cancelamos si la fecha es futura.
-  if (!isAdmin && status === "cancelada") {
-    const { data: booking } = await supabaseAdmin
-      .from("bookings")
-      .select("id, fecha")
-      .eq("id", id)
-      .maybeSingle();
+  try {
+    // Cancelación pública: solo cancelamos si la fecha es futura.
+    if (!isAdmin && status === "cancelada") {
+      const booking = await repoGetBookingMinimalById(sql, id);
 
-    if (!booking) {
-      return NextResponse.json(
-        { error: "Reserva no encontrada." },
-        { status: 404 }
-      );
+      if (!booking) {
+        return NextResponse.json(
+          { error: "Reserva no encontrada." },
+          { status: 404 }
+        );
+      }
+
+      const fechaDate = booking.fecha ? parseISODate(booking.fecha) : null;
+      if (!fechaDate || !isFutureDate(fechaDate)) {
+        return NextResponse.json(
+          { error: "No puedes cancelar una reserva pasada." },
+          { status: 400 }
+        );
+      }
     }
 
-    const fechaDate = booking.fecha ? parseISODate(booking.fecha) : null;
-    if (!fechaDate || !isFutureDate(fechaDate)) {
-      return NextResponse.json(
-        { error: "No puedes cancelar una reserva pasada." },
-        { status: 400 }
-      );
+    const result = await repoUpdateBookingStatus(
+      sql,
+      id,
+      status as "pendiente" | "confirmada" | "cancelada"
+    );
+
+    if (!result.ok) {
+      if (result.notFound) {
+        return NextResponse.json({ error: result.message }, { status: 404 });
+      }
+      return NextResponse.json({ error: result.message }, { status: 500 });
     }
-  }
 
-  const { data, error } = await supabaseAdmin
-    .from("bookings")
-    .update({ status })
-    .eq("id", id)
-    .select("*")
-    .maybeSingle();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(result.booking, { status: 200 });
+  } catch (e) {
+    console.error("[bookings PATCH]", e);
+    return NextResponse.json(
+      { error: "Error al actualizar la reserva." },
+      { status: 500 }
+    );
   }
-  if (!data) {
-    return NextResponse.json({ error: "Reserva no encontrada." }, { status: 404 });
-  }
-
-  return NextResponse.json(data, { status: 200 });
 }
-

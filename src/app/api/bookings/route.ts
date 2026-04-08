@@ -1,5 +1,13 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getSql } from "@/lib/db";
+import {
+  repoGetBookingByFecha,
+  repoGetBookingIdByFecha,
+  repoInsertBooking,
+  repoListAllBookings,
+  repoListBookingsByAula,
+  repoListBookingsByAulaAndNombre,
+} from "@/lib/bookings-repo";
 import {
   isBookingDay,
   isFutureDate,
@@ -9,6 +17,9 @@ import {
 } from "@/lib/dates";
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
+const DB_MISSING =
+  "La base de datos no está configurada. Añade DATABASE_URL en Vercel (entorno del servidor).";
 
 function requireAdmin(request: Request) {
   const provided = request.headers.get("x-admin-password");
@@ -25,9 +36,8 @@ function requireAdmin(request: Request) {
 }
 
 export async function GET(request: Request) {
-  if (!supabaseAdmin) {
-    // En desarrollo (sin .env.local) devolvemos datos “vacíos”
-    // para que el calendario funcione sin bloquear la UI.
+  const sql = getSql();
+  if (!sql) {
     const url = new URL(request.url);
     const fecha = url.searchParams.get("fecha");
     const aula = url.searchParams.get("aula");
@@ -43,86 +53,59 @@ export async function GET(request: Request) {
   const aula = url.searchParams.get("aula");
   const nombre = url.searchParams.get("nombre");
 
-  // Admin: GET sin parámetros
-  if (!fecha && !aula && !nombre) {
-    const adminError = requireAdmin(request);
-    if (adminError) return adminError;
+  try {
+    // Admin: GET sin parámetros
+    if (!fecha && !aula && !nombre) {
+      const adminError = requireAdmin(request);
+      if (adminError) return adminError;
 
-    const { data, error } = await supabaseAdmin
-      .from("bookings")
-      .select("*")
-      .order("fecha", { ascending: true });
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      const data = await repoListAllBookings(sql);
+      return NextResponse.json(data ?? []);
     }
-    return NextResponse.json(data ?? []);
+
+    // Disponibilidad: GET ?fecha=YYYY-MM-DD
+    if (fecha) {
+      const parsed = parseISODate(fecha);
+      if (!parsed) {
+        return NextResponse.json({ error: "Fecha inválida." }, { status: 400 });
+      }
+
+      const data = await repoGetBookingByFecha(sql, toISODate(parsed));
+      return NextResponse.json(data ?? null);
+    }
+
+    // Usuario: GET ?aula=X&nombre=Y
+    if (aula && nombre) {
+      const data = await repoListBookingsByAulaAndNombre(sql, aula, nombre);
+      return NextResponse.json(data ?? []);
+    }
+
+    // Aula: GET ?aula=X (muestra todas las reservas del aula)
+    if (aula && !nombre) {
+      const data = await repoListBookingsByAula(sql, aula);
+      return NextResponse.json(data ?? []);
+    }
+
+    return NextResponse.json(
+      {
+        error:
+          "Parámetros no válidos. Usa ?fecha=YYYY-MM-DD, ?aula=X[&nombre=Y], o GET sin parámetros (admin).",
+      },
+      { status: 400 }
+    );
+  } catch (e) {
+    console.error("[bookings GET]", e);
+    return NextResponse.json(
+      { error: "Error al consultar la base de datos." },
+      { status: 500 }
+    );
   }
-
-  // Disponibilidad: GET ?fecha=YYYY-MM-DD
-  if (fecha) {
-    const parsed = parseISODate(fecha);
-    if (!parsed) {
-      return NextResponse.json({ error: "Fecha inválida." }, { status: 400 });
-    }
-
-    const { data, error } = await supabaseAdmin
-      .from("bookings")
-      .select("*")
-      .eq("fecha", toISODate(parsed))
-      .maybeSingle();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-    return NextResponse.json(data ?? null);
-  }
-
-  // Usuario: GET ?aula=X&nombre=Y
-  if (aula && nombre) {
-    const { data, error } = await supabaseAdmin
-      .from("bookings")
-      .select("*")
-      .eq("aula", aula)
-      .eq("nombre", nombre)
-      .order("fecha", { ascending: true });
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-    return NextResponse.json(data ?? []);
-  }
-
-  // Aula: GET ?aula=X (muestra todas las reservas del aula)
-  if (aula && !nombre) {
-    const { data, error } = await supabaseAdmin
-      .from("bookings")
-      .select("*")
-      .eq("aula", aula)
-      .order("fecha", { ascending: true });
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json(data ?? []);
-  }
-
-  return NextResponse.json(
-    {
-      error:
-        "Parámetros no válidos. Usa ?fecha=YYYY-MM-DD, ?aula=X[&nombre=Y], o GET sin parámetros (admin).",
-    },
-    { status: 400 }
-  );
 }
 
 export async function POST(request: Request) {
-  if (!supabaseAdmin) {
-    return NextResponse.json(
-      { error: "Supabase no configurada en el servidor." },
-      { status: 500 }
-    );
+  const sql = getSql();
+  if (!sql) {
+    return NextResponse.json({ error: DB_MISSING }, { status: 500 });
   }
 
   const body = await request.json().catch(() => null);
@@ -161,7 +144,6 @@ export async function POST(request: Request) {
     );
   }
 
-  // Una reserva por fecha (también hay UNIQUE en DB).
   const normalizedFecha = toISODate(parsedDate);
 
   if (!isWorkshopAllowedISO(normalizedFecha)) {
@@ -170,43 +152,37 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-  const { data: existing } = await supabaseAdmin
-    .from("bookings")
-    .select("id")
-    .eq("fecha", normalizedFecha)
-    .maybeSingle();
 
-  if (existing?.id) {
-    return NextResponse.json(
-      { error: "Esta fecha ya está reservada." },
-      { status: 409 }
-    );
-  }
-
-  const { data, error } = await supabaseAdmin
-    .from("bookings")
-    .insert({
-      fecha: normalizedFecha,
-      aula,
-      nombre,
-      idea,
-      num_alumnos,
-      // status: por defecto “pendiente”
-    })
-    .select("*")
-    .maybeSingle();
-
-  if (error) {
-    // Por si el UNIQUE falla en carrera.
-    if (error.code === "23505") {
+  try {
+    const existing = await repoGetBookingIdByFecha(sql, normalizedFecha);
+    if (existing?.id) {
       return NextResponse.json(
         { error: "Esta fecha ya está reservada." },
         { status: 409 }
       );
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+
+    const result = await repoInsertBooking(sql, {
+      fecha: normalizedFecha,
+      aula,
+      nombre,
+      idea,
+      num_alumnos,
+    });
+
+    if (!result.ok) {
+      if (result.uniqueViolation) {
+        return NextResponse.json({ error: result.message }, { status: 409 });
+      }
+      return NextResponse.json({ error: result.message }, { status: 500 });
+    }
+
+    return NextResponse.json(result.booking, { status: 201 });
+  } catch (e) {
+    console.error("[bookings POST]", e);
+    return NextResponse.json(
+      { error: "Error al guardar la reserva." },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json(data, { status: 201 });
 }
-
