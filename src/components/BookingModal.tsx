@@ -125,6 +125,15 @@ export default function BookingModal({
     });
   }, [open, selectedFecha, reset]);
 
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
   const submit = handleSubmit(async (values) => {
     if (!selectedFecha) return;
 
@@ -208,22 +217,32 @@ export default function BookingModal({
     <AnimatePresence>
       {open && selectedFecha && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center px-3 py-6"
+          className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden overscroll-y-contain"
           role="dialog"
           aria-modal="true"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) onClose();
-          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
         >
-          <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px]" />
+          <div className="relative flex min-h-full w-full items-center justify-center px-3 py-6 pb-10 sm:py-8">
+            <div
+              className="absolute inset-0 min-h-full w-full bg-black/10 backdrop-blur-[1px]"
+              aria-hidden
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onClose();
+              }}
+            />
 
-          <motion.div
-            initial={{ y: 60, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 60, opacity: 0 }}
-            transition={{ duration: 0.22 }}
-            className="relative w-full max-w-[520px] card p-5 md:p-7 max-h-[85vh] overflow-y-auto"
-          >
+            <motion.div
+              initial={{ y: 24, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 24, opacity: 0 }}
+              transition={{ duration: 0.22 }}
+              className="relative z-10 w-full max-w-[520px] card p-5 md:p-7"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="font-headings text-xl text-[color:var(--brown)]">
@@ -289,9 +308,9 @@ export default function BookingModal({
                       </label>
                       <textarea
                         {...register("idea")}
-                        rows={4}
+                        rows={3}
                         placeholder="Describe brevemente tu propuesta…"
-                        className="min-h-[120px] rounded-lg border border-[color:var(--border)] bg-white px-3 py-2 outline-none focus:ring-2 focus:ring-[color:var(--cyan)]/40"
+                        className="min-h-[96px] rounded-lg border border-[color:var(--border)] bg-white px-3 py-2 outline-none focus:ring-2 focus:ring-[color:var(--cyan)]/40"
                       />
                       {errors.idea?.message && (
                         <p className="text-xs text-[color:var(--magenta)]">
@@ -443,7 +462,8 @@ export default function BookingModal({
                   </button>
               </div>
             )}
-          </motion.div>
+            </motion.div>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
