@@ -178,8 +178,22 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(result.booking, { status: 201 });
-  } catch (e) {
+  } catch (e: unknown) {
     console.error("[bookings POST]", e);
+    if (
+      typeof e === "object" &&
+      e !== null &&
+      "code" in e &&
+      (e as { code: string }).code === "42P01"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "La tabla de reservas no existe en Neon. Ejecuta db/schema.sql en el SQL Editor de Neon o, con DATABASE_URL local: npm run db:setup",
+        },
+        { status: 500 }
+      );
+    }
     return NextResponse.json(
       { error: "Error al guardar la reserva." },
       { status: 500 }
