@@ -16,6 +16,7 @@ const schema = z.object({
 export type OnboardingData = z.infer<typeof schema>;
 
 const aulaOptions: string[] = [
+  "1ºA",
   "1ºB",
   "2ºA",
   "2ºB",
@@ -32,6 +33,7 @@ const aulaOptions: string[] = [
   "EFFA",
   "INFANTIL",
   "MÚSICA",
+  "RELIGIÓN",
   "TVA 1",
   "TVA 2",
   "TVA 3",

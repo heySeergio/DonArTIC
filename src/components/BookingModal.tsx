@@ -18,7 +18,8 @@ import type { Booking } from "@/lib/types";
 
 const schema = z
   .object({
-    aula_destino: z.enum(["TU_AULA", "EFFA", "OTRA"]),
+    aula_destino: z.enum(["TU_AULA", "CLASE", "EFFA", "OTRA"]),
+    aula_clase: z.string().optional(),
     aula_otro: z.string().optional(),
     idea: z.string().min(1, "La idea es obligatoria."),
     num_alumnos: z
@@ -28,6 +29,16 @@ const schema = z
       .max(30, "Máximo 30 alumnos."),
   })
   .superRefine((values, ctx) => {
+    if (values.aula_destino === "CLASE") {
+      const v = values.aula_clase?.trim() ?? "";
+      if (!v) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Selecciona la clase donde se hará el taller.",
+          path: ["aula_clase"],
+        });
+      }
+    }
     if (values.aula_destino === "OTRA") {
       const v = values.aula_otro?.trim() ?? "";
       if (!v) {
@@ -41,6 +52,30 @@ const schema = z
   });
 
 type FormValues = z.infer<typeof schema>;
+
+const classDestinationOptions: string[] = [
+  "1ºA",
+  "1ºB",
+  "2ºA",
+  "2ºB",
+  "2ºC",
+  "2ºD",
+  "2ºE",
+  "2ºF",
+  "AL 1",
+  "AL 2",
+  "AL 3",
+  "AL 4",
+  "CONFECCIÓN",
+  "EFFA",
+  "INFANTIL",
+  "MÚSICA",
+  "TVA 1",
+  "TVA 2",
+  "TVA 3",
+  "TVA 4",
+  "TVA 5",
+];
 
 function CheckIcon() {
   return (
@@ -75,6 +110,13 @@ export default function BookingModal({
   onBooked: (booking: Booking) => void;
   cooldownUntilISO: string | null;
 }) {
+  const isReligionProfile =
+    profile.aula
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase() === "RELIGION";
+
   const parsed = useMemo(() => {
     if (!selectedFecha) return null;
     return parseISODate(selectedFecha);
@@ -95,7 +137,8 @@ export default function BookingModal({
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      aula_destino: "TU_AULA",
+      aula_destino: isReligionProfile ? "CLASE" : "TU_AULA",
+      aula_clase: "",
       aula_otro: "",
       idea: "",
       num_alumnos: 5,
@@ -103,9 +146,12 @@ export default function BookingModal({
   });
 
   const aulaDestino = watch("aula_destino");
+  const aulaClase = watch("aula_clase");
   const aulaOtro = watch("aula_otro");
   const aulaSeleccionada =
-    aulaDestino === "EFFA"
+    aulaDestino === "CLASE"
+      ? aulaClase?.trim() || ""
+      : aulaDestino === "EFFA"
       ? "EFFA"
       : aulaDestino === "OTRA"
         ? aulaOtro?.trim() || ""
@@ -118,12 +164,13 @@ export default function BookingModal({
     setPendingValues(null);
     if (!open) return;
     reset({
-      aula_destino: "TU_AULA",
+      aula_destino: isReligionProfile ? "CLASE" : "TU_AULA",
+      aula_clase: "",
       aula_otro: "",
       idea: "",
       num_alumnos: 5,
     });
-  }, [open, selectedFecha, reset]);
+  }, [open, selectedFecha, reset, isReligionProfile]);
 
   useEffect(() => {
     if (!open) return;
@@ -175,7 +222,9 @@ export default function BookingModal({
         body: JSON.stringify({
           fecha: selectedFecha,
           aula:
-            pendingValues.aula_destino === "EFFA"
+            pendingValues.aula_destino === "CLASE"
+              ? (pendingValues.aula_clase ?? "").trim()
+              : pendingValues.aula_destino === "EFFA"
               ? "EFFA"
               : pendingValues.aula_destino === "OTRA"
                 ? (pendingValues.aula_otro ?? "").trim()
@@ -276,19 +325,45 @@ export default function BookingModal({
                   <form onSubmit={submit} className="mt-5 flex flex-col gap-4">
                     <div className="flex flex-col gap-2">
                       <label className="text-sm font-medium text-[color:var(--text)]">
-                        ¿Dónde se hará el taller?
+                        {isReligionProfile
+                          ? "¿En qué clase se hará el taller?"
+                          : "¿Dónde se hará el taller?"}
                       </label>
-                      <select
-                        {...register("aula_destino")}
-                        className="h-12 rounded-lg border border-[color:var(--border)] bg-white px-3 text-[color:var(--text)] outline-none focus:ring-2 focus:ring-[color:var(--cyan)]/40"
-                      >
-                        <option value="TU_AULA">
-                          En tu aula ({profile.aula})
-                        </option>
-                        <option value="EFFA">En el aula EFFA</option>
-                        <option value="OTRA">Otra (escribe el aula)</option>
-                      </select>
-                      {aulaDestino === "OTRA" && (
+                      {isReligionProfile ? (
+                        <>
+                          <input type="hidden" {...register("aula_destino")} value="CLASE" />
+                          <select
+                            {...register("aula_clase")}
+                            className="h-12 rounded-lg border border-[color:var(--border)] bg-white px-3 text-[color:var(--text)] outline-none focus:ring-2 focus:ring-[color:var(--cyan)]/40"
+                          >
+                            <option value="" disabled>
+                              Selecciona una clase…
+                            </option>
+                            {classDestinationOptions.map((o) => (
+                              <option key={o} value={o}>
+                                {o}
+                              </option>
+                            ))}
+                          </select>
+                        </>
+                      ) : (
+                        <select
+                          {...register("aula_destino")}
+                          className="h-12 rounded-lg border border-[color:var(--border)] bg-white px-3 text-[color:var(--text)] outline-none focus:ring-2 focus:ring-[color:var(--cyan)]/40"
+                        >
+                          <option value="TU_AULA">
+                            En tu aula ({profile.aula})
+                          </option>
+                          <option value="EFFA">En el aula EFFA</option>
+                          <option value="OTRA">Otra (escribe el aula)</option>
+                        </select>
+                      )}
+                      {errors.aula_clase?.message && isReligionProfile && (
+                        <p className="text-xs text-[color:var(--magenta)]">
+                          {errors.aula_clase.message}
+                        </p>
+                      )}
+                      {aulaDestino === "OTRA" && !isReligionProfile && (
                         <input
                           {...register("aula_otro")}
                           placeholder="Ej. Salón de actos"
