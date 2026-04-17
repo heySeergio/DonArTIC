@@ -129,6 +129,7 @@ const WORKSHOP_ALLOWED_ISO_DATES_2026 = new Set<string>([
 
   // Mayo (L/X/V)
   "2026-05-04",
+  "2026-05-06",
   "2026-05-08",
   "2026-05-11",
   "2026-05-13",
