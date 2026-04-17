@@ -381,6 +381,11 @@ export default function BookingModal({
                       <label className="text-sm font-medium text-[color:var(--text)]">
                         ¿Qué idea tienes para el taller?
                       </label>
+                      <p className="text-xs text-[color:var(--muted)]">
+                        Indica todo tipo de detalles, como si se requiere un
+                        horario distinto o las necesidades concretas de los
+                        alumnos.
+                      </p>
                       <textarea
                         {...register("idea")}
                         rows={3}

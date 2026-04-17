@@ -1,8 +1,8 @@
 /**
  * Colores de acento por nombre de aula/clase (calendarios y celdas ocupadas).
  *
- * Amarillo: 2ºA, cualquier 1º…, INFANTIL, TVA 5
- * Azul: TVA 1–4, CONFECCIÓN
+ * Amarillo: 2ºA, cualquier 1º…, INFANTIL, RELIGIÓN, TVA 5
+ * Azul: TVA 1–4, CONFECCIÓN, AGRARIA
  * Verde: el resto
  */
 
@@ -33,12 +33,14 @@ export function bookingAulaAccentColor(aula: string): string {
   }
 
   if (normalized === "INFANTIL") return AULA_COLOR_AMARILLO;
+  if (normalized === "RELIGION") return AULA_COLOR_AMARILLO;
 
   if (/^2(?:º|°)A$/i.test(compact)) return AULA_COLOR_AMARILLO;
 
   if (/^1(?:º|°)/.test(compact)) return AULA_COLOR_AMARILLO;
 
   if (normalized.includes("CONFECCION")) return AULA_COLOR_AZUL;
+  if (normalized.includes("AGRARIA")) return AULA_COLOR_AZUL;
 
   return AULA_COLOR_VERDE;
 }
