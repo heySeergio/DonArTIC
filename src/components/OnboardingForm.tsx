@@ -28,6 +28,7 @@ const aulaOptions: string[] = [
   "AL 2",
   "AL 3",
   "AL 4",
+  "AGRARIA",
   // Según indicación del usuario: NO incluir “ALMACÉN”.
   "CONFECCIÓN",
   "EFFA",
