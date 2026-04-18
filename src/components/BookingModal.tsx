@@ -69,6 +69,7 @@ const classDestinationOptions: string[] = [
   "AGRARIA",
   "CONFECCIÓN",
   "EFFA",
+  "FISIOS",
   "INFANTIL",
   "MÚSICA",
   "TVA 1",

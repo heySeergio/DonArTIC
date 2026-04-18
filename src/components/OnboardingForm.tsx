@@ -32,6 +32,7 @@ const aulaOptions: string[] = [
   // Según indicación del usuario: NO incluir “ALMACÉN”.
   "CONFECCIÓN",
   "EFFA",
+  "FISIOS",
   "INFANTIL",
   "MÚSICA",
   "RELIGIÓN",

@@ -3,12 +3,14 @@
  *
  * Amarillo: 2ºA, cualquier 1º…, INFANTIL, RELIGIÓN, TVA 5
  * Azul: TVA 1–4, CONFECCIÓN, AGRARIA
+ * Magenta: FISIOS
  * Verde: el resto
  */
 
 export const AULA_COLOR_AMARILLO = "#FEF502";
 export const AULA_COLOR_AZUL = "#0328B2";
 export const AULA_COLOR_VERDE = "#91F539";
+export const AULA_COLOR_FISIOS = "#FF27C0";
 
 function normalizeAula(aula: string): { normalized: string; compact: string } {
   const normalized = aula
@@ -20,9 +22,11 @@ function normalizeAula(aula: string): { normalized: string; compact: string } {
   return { normalized, compact };
 }
 
-/** Color hex para tintes de celda y puntos (siempre uno de los tres). */
+/** Color hex para tintes de celda y puntos. */
 export function bookingAulaAccentColor(aula: string): string {
   const { normalized, compact } = normalizeAula(aula);
+
+  if (normalized === "FISIOS") return AULA_COLOR_FISIOS;
 
   const tva = compact.match(/^TVA(\d+)$/i);
   if (tva) {
