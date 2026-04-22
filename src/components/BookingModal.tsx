@@ -187,7 +187,7 @@ export default function BookingModal({
     if (!selectedFecha) return;
 
     if (!parsed || !isBookingDay(parsed) || !isFutureDate(parsed)) {
-      setToast("Selecciona una fecha válida y futura (L/X/V).");
+      setToast("Selecciona una fecha válida y futura (L/M/X/V).");
       return;
     }
 

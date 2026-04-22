@@ -128,7 +128,7 @@ export async function POST(request: Request) {
 
   if (!isBookingDay(parsedDate)) {
     return NextResponse.json(
-      { error: "Solo se reservan talleres los lunes, miércoles y viernes." },
+      { error: "Solo se reservan talleres los lunes, martes, miércoles y viernes." },
       { status: 400 }
     );
   }

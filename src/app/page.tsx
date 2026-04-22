@@ -58,7 +58,7 @@ export default function Home() {
           Reserva tu taller
         </h1>
         <p className="mt-2 text-sm text-[color:var(--muted)]">
-          CEE Príncipe Don Juan · L/X/V · 13:00–14:30h
+          CEE Príncipe Don Juan · L/M/X/V · 13:00–14:30h
         </p>
 
         <div className="mt-6">

@@ -1,7 +1,7 @@
 import { addDays, endOfMonth, endOfWeek, format, isAfter, isValid, parseISO, startOfMonth, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 
-export type BookingDay = "lunes" | "miércoles" | "viernes";
+export type BookingDay = "lunes" | "martes" | "miércoles" | "viernes";
 
 export function parseISODate(isoDate: string): Date | null {
   const d = parseISO(isoDate);
@@ -16,12 +16,13 @@ export function toISODate(date: Date): string {
 export function isBookingDay(date: Date): boolean {
   // JS: getDay => 0 domingo, 1 lunes, ... 5 viernes
   const day = date.getDay();
-  return day === 1 || day === 3 || day === 5;
+  return day === 1 || day === 2 || day === 3 || day === 5;
 }
 
 export function getBookingDayLabel(date: Date): BookingDay {
   const day = date.getDay();
   if (day === 1) return "lunes";
+  if (day === 2) return "martes";
   if (day === 3) return "miércoles";
   return "viernes";
 }
@@ -99,7 +100,7 @@ export function chunkWeeks(days: Date[]): Date[][] {
 
 // Calendario laboral (según captura del usuario) para 2026:
 // Se permiten únicamente las celdas "Días laborables" (rosas) en el rango
-// de marzo a junio. En esta app los talleres solo ocurren L/X/V, por lo que
+// de marzo a mayo. En esta app los talleres ocurren L/M/X/V.
 // el set contiene únicamente esas fechas laborables.
 const WORKSHOP_ALLOWED_ISO_DATES_2026 = new Set<string>([
   // Marzo (L/X/V)
@@ -124,7 +125,6 @@ const WORKSHOP_ALLOWED_ISO_DATES_2026 = new Set<string>([
   "2026-04-17",
   "2026-04-20",
   "2026-04-22",
-  "2026-04-27",
   "2026-04-29",
 
   // Mayo (L/X/V)
@@ -141,12 +141,17 @@ const WORKSHOP_ALLOWED_ISO_DATES_2026 = new Set<string>([
   "2026-05-27",
   "2026-05-29",
 
-  // Junio (L/X/V)
-  "2026-06-01",
 ]);
 
 export function isWorkshopAllowedISO(isoDate: string): boolean {
-  return WORKSHOP_ALLOWED_ISO_DATES_2026.has(isoDate);
+  const normalized = isoDate.slice(0, 10);
+  if (WORKSHOP_ALLOWED_ISO_DATES_2026.has(normalized)) return true;
+  if (normalized < WORKSHOP_ALLOWED_RANGE.minISO || normalized > WORKSHOP_ALLOWED_RANGE.maxISO) {
+    return false;
+  }
+  // El usuario pidió habilitar martes además de las fechas laborables predefinidas.
+  const parsed = parseISODate(normalized);
+  return parsed?.getDay() === 2;
 }
 
 export function isWorkshopAllowedDate(date: Date): boolean {
@@ -155,7 +160,7 @@ export function isWorkshopAllowedDate(date: Date): boolean {
 
 export const WORKSHOP_ALLOWED_RANGE = {
   minISO: "2026-03-01",
-  maxISO: "2026-06-30",
+  maxISO: "2026-05-31",
 };
 
 
