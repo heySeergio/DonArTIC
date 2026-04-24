@@ -11,6 +11,8 @@ create table if not exists public.bookings (
   nombre text not null,
   idea text not null,
   num_alumnos integer not null check (num_alumnos between 1 and 30),
+  hora_inicio text not null default '13:00' check (hora_inicio ~ '^[0-2][0-9]:[0-5][0-9]$'),
+  hora_fin text not null default '14:30' check (hora_fin ~ '^[0-2][0-9]:[0-5][0-9]$'),
   status text not null default 'pendiente'
     check (status in ('pendiente', 'confirmada', 'cancelada'))
 );

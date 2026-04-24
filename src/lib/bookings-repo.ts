@@ -18,7 +18,19 @@ export function isValidBookingId(id: string): boolean {
 }
 
 export async function repoListAllBookings(sql: NeonSql): Promise<Booking[]> {
-  const rows = await sql`SELECT * FROM bookings ORDER BY fecha ASC`;
+  const rows = await sql`
+    SELECT
+      id,
+      created_at,
+      fecha::text AS fecha,
+      aula,
+      nombre,
+      idea,
+      num_alumnos,
+      status
+    FROM bookings
+    ORDER BY fecha ASC
+  `;
   return rows as unknown as Booking[];
 }
 
@@ -28,7 +40,16 @@ export async function repoGetActiveBookingByFecha(
   fechaISO: string
 ): Promise<Booking | null> {
   const rows = await sql`
-    SELECT * FROM bookings
+    SELECT
+      id,
+      created_at,
+      fecha::text AS fecha,
+      aula,
+      nombre,
+      idea,
+      num_alumnos,
+      status
+    FROM bookings
     WHERE fecha = ${fechaISO}::date
       AND status IN ('pendiente', 'confirmada')
     LIMIT 1
@@ -51,7 +72,16 @@ export async function repoListBookingsByAulaAndNombre(
   nombre: string
 ): Promise<Booking[]> {
   const rows = await sql`
-    SELECT * FROM bookings
+    SELECT
+      id,
+      created_at,
+      fecha::text AS fecha,
+      aula,
+      nombre,
+      idea,
+      num_alumnos,
+      status
+    FROM bookings
     WHERE aula = ${aula} AND nombre = ${nombre}
     ORDER BY fecha ASC
   `;
@@ -63,7 +93,16 @@ export async function repoListBookingsByAula(
   aula: string
 ): Promise<Booking[]> {
   const rows = await sql`
-    SELECT * FROM bookings
+    SELECT
+      id,
+      created_at,
+      fecha::text AS fecha,
+      aula,
+      nombre,
+      idea,
+      num_alumnos,
+      status
+    FROM bookings
     WHERE aula = ${aula}
     ORDER BY fecha ASC
   `;
@@ -84,6 +123,22 @@ export async function repoGetActiveBookingIdByFecha(
   return list[0] ?? null;
 }
 
+export async function repoGetActiveBookingIdByFechaExcludingId(
+  sql: NeonSql,
+  fechaISO: string,
+  excludedId: string
+): Promise<{ id: string } | null> {
+  const rows = await sql`
+    SELECT id FROM bookings
+    WHERE fecha = ${fechaISO}::date
+      AND status IN ('pendiente', 'confirmada')
+      AND id <> ${excludedId}::uuid
+    LIMIT 1
+  `;
+  const list = rows as unknown as { id: string }[];
+  return list[0] ?? null;
+}
+
 export async function repoInsertBooking(
   sql: NeonSql,
   row: {
@@ -92,6 +147,8 @@ export async function repoInsertBooking(
     nombre: string;
     idea: string;
     num_alumnos: number;
+    hora_inicio?: string;
+    hora_fin?: string;
   }
 ): Promise<{ ok: true; booking: Booking } | { ok: false; uniqueViolation: boolean; message: string }> {
   try {
@@ -104,7 +161,15 @@ export async function repoInsertBooking(
         ${row.idea},
         ${row.num_alumnos}
       )
-      RETURNING *
+      RETURNING
+        id,
+        created_at,
+        fecha::text AS fecha,
+        aula,
+        nombre,
+        idea,
+        num_alumnos,
+        status
     `;
     const list = rows as unknown as Booking[];
     const booking = list[0];
@@ -137,7 +202,18 @@ export async function repoGetBookingById(
   id: string
 ): Promise<Booking | null> {
   const rows = await sql`
-    SELECT * FROM bookings WHERE id = ${id}::uuid LIMIT 1
+    SELECT
+      id,
+      created_at,
+      fecha::text AS fecha,
+      aula,
+      nombre,
+      idea,
+      num_alumnos,
+      status
+    FROM bookings
+    WHERE id = ${id}::uuid
+    LIMIT 1
   `;
   const list = rows as unknown as Booking[];
   return list[0] ?? null;
@@ -149,7 +225,17 @@ export async function repoDeleteBooking(
 ): Promise<{ ok: true; booking: Booking } | { ok: false; notFound: boolean; message: string }> {
   try {
     const rows = await sql`
-      DELETE FROM bookings WHERE id = ${id}::uuid RETURNING *
+      DELETE FROM bookings
+      WHERE id = ${id}::uuid
+      RETURNING
+        id,
+        created_at,
+        fecha::text AS fecha,
+        aula,
+        nombre,
+        idea,
+        num_alumnos,
+        status
     `;
     const list = rows as unknown as Booking[];
     const booking = list[0];
@@ -172,7 +258,15 @@ export async function repoUpdateBookingStatus(
     const rows = await sql`
       UPDATE bookings SET status = ${status}
       WHERE id = ${id}::uuid
-      RETURNING *
+      RETURNING
+        id,
+        created_at,
+        fecha::text AS fecha,
+        aula,
+        nombre,
+        idea,
+        num_alumnos,
+        status
     `;
     const list = rows as unknown as Booking[];
     const booking = list[0];
@@ -181,6 +275,49 @@ export async function repoUpdateBookingStatus(
     }
     return { ok: true, booking };
   } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Error al actualizar la reserva.";
+    return { ok: false, notFound: false, message: msg };
+  }
+}
+
+export async function repoUpdateBookingDetails(
+  sql: NeonSql,
+  id: string,
+  changes: {
+    fecha: string;
+    aula: string;
+    num_alumnos: number;
+    hora_inicio: string;
+    hora_fin: string;
+  }
+): Promise<{ ok: true; booking: Booking } | { ok: false; notFound: boolean; message: string }> {
+  try {
+    const rows = await sql`
+      UPDATE bookings
+      SET fecha = ${changes.fecha}::date,
+          aula = ${changes.aula},
+          num_alumnos = ${changes.num_alumnos}
+      WHERE id = ${id}::uuid
+      RETURNING
+        id,
+        created_at,
+        fecha::text AS fecha,
+        aula,
+        nombre,
+        idea,
+        num_alumnos,
+        status
+    `;
+    const list = rows as unknown as Booking[];
+    const booking = list[0];
+    if (!booking) {
+      return { ok: false, notFound: true, message: "Reserva no encontrada." };
+    }
+    return { ok: true, booking };
+  } catch (e: unknown) {
+    if (isUniqueViolation(e)) {
+      return { ok: false, notFound: false, message: "Esta fecha ya está reservada." };
+    }
     const msg = e instanceof Error ? e.message : "Error al actualizar la reserva.";
     return { ok: false, notFound: false, message: msg };
   }

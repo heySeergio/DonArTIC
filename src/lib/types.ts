@@ -8,6 +8,8 @@ export type Booking = {
   nombre: string;
   idea: string;
   num_alumnos: number;
+  hora_inicio?: string; // HH:mm
+  hora_fin?: string; // HH:mm
   status: BookingStatus;
 };
 

@@ -9,15 +9,22 @@ import ColorSwatches from "@/components/ColorSwatches";
 import TransparentLogo from "@/components/TransparentLogo";
 
 const PROFILE_KEY = "donartic.profile";
+const DISCLAIMER_SEEN_KEY = "donartic.disclaimerSeen";
 
 export default function Home() {
   const router = useRouter();
   const [hydrated, setHydrated] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setHydrated(true);
     try {
+      const disclaimerSeen = localStorage.getItem(DISCLAIMER_SEEN_KEY);
+      if (!disclaimerSeen) {
+        setShowDisclaimer(true);
+      }
+
       const raw = localStorage.getItem(PROFILE_KEY);
       if (!raw) return;
       const parsed = JSON.parse(raw) as Partial<OnboardingData>;
@@ -34,6 +41,11 @@ export default function Home() {
     router.replace("/calendario");
   };
 
+  const onCloseDisclaimer = () => {
+    localStorage.setItem(DISCLAIMER_SEEN_KEY, "true");
+    setShowDisclaimer(false);
+  };
+
   if (!hydrated) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
@@ -44,10 +56,35 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
+      {showDisclaimer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="card w-full max-w-[520px] p-6 md:p-8">
+            <h2 className="font-headings text-2xl text-[color:var(--brown)]">
+              Aviso importante
+            </h2>
+            <p className="mt-3 text-sm text-[color:var(--muted)]">
+              Esta página está pensada para que los{" "}
+              <strong className="text-[color:var(--text)]">PROFESORES</strong>{" "}
+              agenden el taller. No está destinada a que lo hagan las familias o
+              padres.
+            </p>
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                className="btn-solid"
+                onClick={onCloseDisclaimer}
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <section className="card w-full max-w-[420px] p-6 md:p-8">
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col">
-            <TransparentLogo className="max-h-[48px] w-auto" alt="DonArTIC" />
+            <TransparentLogo alt="DonArTIC" />
             <div className="mt-2">
               <ColorSwatches />
             </div>

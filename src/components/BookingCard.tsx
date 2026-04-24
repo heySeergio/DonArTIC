@@ -2,6 +2,7 @@
 
 import type { Booking } from "@/lib/types";
 import {
+  formatBookingTimeRange,
   formatSpanishDate,
   formatSpanishWeekday,
   parseISODate,
@@ -54,7 +55,7 @@ export default function BookingCard({
                 {d ? `${formatSpanishWeekday(d)} · ${formatSpanishDate(d)}` : ""}
               </div>
               <div className="font-semibold mt-1 text-[color:var(--text)]">
-                13:00–14:30h
+                {formatBookingTimeRange(booking.hora_inicio, booking.hora_fin)}
               </div>
             </div>
 

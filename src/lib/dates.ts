@@ -2,6 +2,8 @@ import { addDays, endOfMonth, endOfWeek, format, isAfter, isValid, parseISO, sta
 import { es } from "date-fns/locale";
 
 export type BookingDay = "lunes" | "martes" | "miércoles" | "viernes";
+export const DEFAULT_BOOKING_START_TIME = "13:00";
+export const DEFAULT_BOOKING_END_TIME = "14:30";
 
 export function parseISODate(isoDate: string): Date | null {
   const d = parseISO(isoDate);
@@ -71,6 +73,19 @@ export function isFutureDate(date: Date): boolean {
 export function isPastDate(date: Date): boolean {
   const now = new Date();
   return !isAfter(date, now);
+}
+
+export function isValidTimeHHMM(value: string): boolean {
+  return /^([01]\d|2[0-3]):([0-5]\d)$/.test(value);
+}
+
+export function formatBookingTimeRange(
+  horaInicio?: string | null,
+  horaFin?: string | null
+): string {
+  const start = horaInicio?.trim() || DEFAULT_BOOKING_START_TIME;
+  const end = horaFin?.trim() || DEFAULT_BOOKING_END_TIME;
+  return `${start}–${end}h`;
 }
 
 export function getMonthRangeGrid(monthDate: Date): Date[] {

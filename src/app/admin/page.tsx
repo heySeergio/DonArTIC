@@ -76,10 +76,7 @@ export default function AdminPage() {
         <div className="flex flex-col">
           <div className="flex items-start">
               <Link href="/">
-                <TransparentLogo
-                  className="max-h-[48px] w-auto"
-                  alt="DonArTIC"
-                />
+                <TransparentLogo alt="DonArTIC" />
               </Link>
           </div>
           <div className="mt-1">
@@ -136,7 +133,6 @@ export default function AdminPage() {
           <div className="flex items-start justify-between gap-4">
             <div className="flex flex-col">
               <TransparentLogo
-                className="max-h-[48px] w-auto"
                 alt="DonArTIC"
               />
               <div className="mt-2">
@@ -195,6 +191,11 @@ export default function AdminPage() {
 
       <main className="flex-1 px-4 md:px-8 pb-10">
         <div className="max-w-[1100px] mx-auto">
+          <div className="mb-4 rounded-xl border border-[color:var(--magenta)]/30 bg-[color:var(--magenta)]/10 px-4 py-3 text-sm text-[color:var(--text)]">
+            <span className="font-semibold">Aviso:</span> antes de confirmar
+            reservas, revisa que no estén hechas por padres y que correspondan
+            a profesorado.
+          </div>
           {tab === "calendario" ? (
             <AdminCalendar
               adminPassword={adminPassword}

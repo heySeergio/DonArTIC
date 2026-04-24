@@ -59,10 +59,8 @@ function makeTransparentFromBlack(dataUrl: string, threshold = 60) {
 }
 
 export default function TransparentLogo({
-  className,
   alt,
 }: {
-  className?: string;
   alt?: string;
 }) {
   const [src, setSrc] = useState<string | null>(null);
@@ -110,9 +108,6 @@ export default function TransparentLogo({
       alt={alt ?? "DonArTIC"}
       width={220}
       height={48}
-      className={className ?? "max-h-[48px] w-auto"}
-      // Evita warnings de next/image cuando el CSS altera dimensiones.
-      style={{ width: "auto", height: "auto" }}
       priority
     />
   );

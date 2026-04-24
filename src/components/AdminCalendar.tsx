@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { addMonths, format } from "date-fns";
 import { es } from "date-fns/locale";
 import {
+  formatBookingTimeRange,
   chunkWeeks,
   getMonthRangeGrid,
   isBookingDay,
@@ -305,7 +306,10 @@ export default function AdminCalendar({
                           : "Cancelada"}
                     </span>
                     <span className="text-sm font-semibold text-[color:var(--navy)]">
-                      13:00–14:30h
+                      {formatBookingTimeRange(
+                        selected.hora_inicio,
+                        selected.hora_fin
+                      )}
                     </span>
                   </div>
 

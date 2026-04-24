@@ -20,7 +20,7 @@ export default function Header({
     <header className="w-full px-4 md:px-8 py-4 flex items-center justify-between gap-4">
       <div className="flex flex-col">
         <Link href="/" className="flex items-start">
-          <TransparentLogo className="max-h-[48px] w-auto" alt="DonArTIC" />
+          <TransparentLogo alt="DonArTIC" />
         </Link>
         <div className="mt-1">
           <ColorSwatches />

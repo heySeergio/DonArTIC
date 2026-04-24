@@ -5,6 +5,9 @@ import { addDays, addMonths, format, startOfMonth, endOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import {
   chunkWeeks,
+  DEFAULT_BOOKING_END_TIME,
+  DEFAULT_BOOKING_START_TIME,
+  formatBookingTimeRange,
   getMonthRangeGrid,
   isBookingDay,
   isWorkshopAllowedDate,
@@ -514,7 +517,15 @@ export default function CalendarGrid({
                             </div>
                           </div>
                           <span className="text-sm font-semibold shrink-0 tabular-nums">
-                            13:00–14:30h
+                            {booked
+                              ? formatBookingTimeRange(
+                                  booked.hora_inicio,
+                                  booked.hora_fin
+                                )
+                              : formatBookingTimeRange(
+                                  DEFAULT_BOOKING_START_TIME,
+                                  DEFAULT_BOOKING_END_TIME
+                                )}
                           </span>
                         </button>
                       );
