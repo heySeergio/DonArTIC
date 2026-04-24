@@ -561,10 +561,7 @@ export default function AdminTable({
                         type="button"
                         onClick={() => onPatch(detailBooking.id, "confirmada")}
                         className="flex-1 min-w-[120px] h-11 rounded-lg bg-[color:var(--cyan)]/15 text-[color:var(--navy)] font-semibold border border-[color:var(--cyan)]/30 hover:bg-[color:var(--cyan)]/20 disabled:opacity-50"
-                        disabled={
-                          detailBooking.status === "confirmada" ||
-                          detailBooking.status === "cancelada"
-                        }
+                        disabled={detailBooking.status === "confirmada"}
                       >
                         Confirmar
                       </button>
