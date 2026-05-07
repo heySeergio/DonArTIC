@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import ColorSwatches from "@/components/ColorSwatches";
 import AdminCalendar from "@/components/AdminCalendar";
 import AdminTable from "@/components/AdminTable";
+import AdminCreateBookingModal from "@/components/AdminCreateBookingModal";
 import TransparentLogo from "@/components/TransparentLogo";
 import Link from "next/link";
 
@@ -22,6 +23,8 @@ export default function AdminPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [passwordInput, setPasswordInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     setHydrated(true);
@@ -70,6 +73,12 @@ export default function AdminPage() {
 
   const refresh = () => setRefreshKey((k) => k + 1);
 
+  useEffect(() => {
+    if (!successMessage) return;
+    const timeout = window.setTimeout(() => setSuccessMessage(null), 2500);
+    return () => window.clearTimeout(timeout);
+  }, [successMessage]);
+
   const header = useMemo(() => {
     return (
       <header className="w-full px-4 md:px-8 py-4 flex items-center justify-between gap-4">
@@ -85,6 +94,13 @@ export default function AdminPage() {
         </div>
 
         <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="h-10 px-4 rounded-lg bg-[color:var(--brown)] text-white text-sm font-semibold hover:opacity-95"
+          >
+            Nueva reserva
+          </button>
           <nav className="flex items-center gap-2 rounded-full border border-[color:var(--border)] bg-white/70 px-2 py-1">
             <button
               type="button"
@@ -196,6 +212,11 @@ export default function AdminPage() {
             reservas, revisa que no estén hechas por padres y que correspondan
             a profesorado.
           </div>
+          {successMessage ? (
+            <div className="mb-4 rounded-xl border border-[color:var(--green)]/30 bg-[color:var(--green)]/10 px-4 py-3 text-sm text-[color:var(--green)]">
+              {successMessage}
+            </div>
+          ) : null}
           {tab === "calendario" ? (
             <AdminCalendar
               adminPassword={adminPassword}
@@ -211,6 +232,16 @@ export default function AdminPage() {
           )}
         </div>
       </main>
+      <AdminCreateBookingModal
+        open={showCreateModal}
+        adminPassword={adminPassword}
+        onClose={() => setShowCreateModal(false)}
+        onCreated={() => {
+          setShowCreateModal(false);
+          refresh();
+          setSuccessMessage("Reserva creada correctamente.");
+        }}
+      />
     </div>
   );
 }

@@ -115,7 +115,14 @@ export async function POST(request: Request) {
     nombre?: string;
     idea?: string;
     num_alumnos?: number;
+    asAdmin?: boolean;
   };
+  const asAdmin = Boolean((body as { asAdmin?: boolean }).asAdmin);
+
+  if (asAdmin) {
+    const adminError = requireAdmin(request);
+    if (adminError) return adminError;
+  }
 
   if (!fecha || !aula || !nombre || !idea || typeof num_alumnos !== "number") {
     return NextResponse.json({ error: "Faltan campos obligatorios." }, { status: 400 });

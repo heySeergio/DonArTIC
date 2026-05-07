@@ -89,6 +89,7 @@ export default function AdminTable({
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<"all" | BookingStatus>("all");
+  const [showPastWorkshops, setShowPastWorkshops] = useState(false);
   const [detailBooking, setDetailBooking] = useState<Booking | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -135,6 +136,37 @@ export default function AdminTable({
         : bookings.filter((b) => b.status === filterStatus);
     return byStatus.sort((a, b) => a.fecha.localeCompare(b.fecha));
   }, [bookings, filterStatus]);
+
+  const { upcomingBookings, pastBookings } = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const upcoming: Booking[] = [];
+    const past: Booking[] = [];
+
+    for (const booking of filtered) {
+      const parsed = parseBookingFecha(booking.fecha);
+      if (!parsed) {
+        upcoming.push(booking);
+        continue;
+      }
+
+      parsed.setHours(0, 0, 0, 0);
+      if (parsed < today) {
+        past.push(booking);
+      } else {
+        upcoming.push(booking);
+      }
+    }
+
+    past.sort((a, b) => {
+      const dayCmp = b.fecha.slice(0, 10).localeCompare(a.fecha.slice(0, 10));
+      if (dayCmp !== 0) return dayCmp;
+      return a.fecha.localeCompare(b.fecha);
+    });
+
+    return { upcomingBookings: upcoming, pastBookings: past };
+  }, [filtered]);
 
   const onPatch = async (id: string, status: BookingStatus) => {
     const res = await fetch(`/api/bookings/${id}`, {
@@ -261,14 +293,14 @@ export default function AdminTable({
                     <div className="inline-block h-10 w-10 rounded-full border border-[color:var(--border)] animate-spin" />
                   </td>
                 </tr>
-              ) : filtered.length === 0 ? (
+              ) : upcomingBookings.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-10 text-center text-[color:var(--muted)]">
-                    No hay reservas para este filtro.
+                    No hay reservas próximas para este filtro.
                   </td>
                 </tr>
               ) : (
-                filtered.map((b) => {
+                upcomingBookings.map((b) => {
                   const d = parseBookingFecha(b.fecha);
                   const colors = statusColors(b.status);
                   const fechaBonita = d ? formatSpanishDateLong(d) : b.fecha;
@@ -349,6 +381,108 @@ export default function AdminTable({
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="mt-5 border-t border-[color:var(--border)] pt-5">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h3 className="font-headings text-base text-[color:var(--navy)]">
+                Talleres pasados
+              </h3>
+              <p className="mt-1 text-sm text-[color:var(--muted)]">
+                Historial ordenado por fecha
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowPastWorkshops((cur) => !cur)}
+              className="h-9 px-3 rounded-lg bg-white/70 text-[color:var(--navy)] font-semibold border border-[color:var(--border)] hover:bg-white text-sm"
+            >
+              {showPastWorkshops ? "Ocultar talleres pasados" : "Ver talleres pasados"}
+            </button>
+          </div>
+
+          {showPastWorkshops ? (
+            <div className="mt-4 overflow-x-auto">
+              <table className="min-w-[520px] w-full border-collapse">
+                <thead>
+                  <tr className="text-left text-xs text-[color:var(--muted)]">
+                    {["Clase", "Fecha", "Nombre", "Estado", "Acciones"].map((h, i) => (
+                      <th
+                        key={h}
+                        className={`pb-3 font-semibold ${i === 0 ? "pl-5" : ""}`}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {pastBookings.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="py-10 text-center text-[color:var(--muted)]"
+                      >
+                        No hay talleres de días anteriores para este filtro.
+                      </td>
+                    </tr>
+                  ) : (
+                    pastBookings.map((b) => {
+                      const d = parseBookingFecha(b.fecha);
+                      const colors = statusColors(b.status);
+                      const fechaBonita = d ? formatSpanishDateLong(d) : b.fecha;
+                      return (
+                        <tr
+                          key={b.id}
+                          style={{ borderLeft: `3px solid ${colors.dot}` }}
+                          className="border-t border-[color:var(--border)]"
+                        >
+                          <td className="py-4 pl-5 pr-3 text-sm font-semibold text-[color:var(--navy)]">
+                            {b.aula}
+                          </td>
+                          <td className="py-4 pr-3 text-sm text-[color:var(--text)] leading-snug max-w-[220px]">
+                            {fechaBonita}
+                          </td>
+                          <td className="py-4 pr-3 text-sm">{b.nombre}</td>
+                          <td className="py-4 pr-3 text-sm">
+                            <span
+                              className="inline-flex items-center rounded-full px-3 py-1 font-semibold border"
+                              style={{
+                                backgroundColor: colors.bg,
+                                color: colors.fg,
+                                borderColor:
+                                  b.status === "cancelada"
+                                    ? "var(--border)"
+                                    : colors.fg,
+                              }}
+                            >
+                              {statusLabel(b.status)}
+                            </span>
+                          </td>
+                          <td className="py-4">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditMode(false);
+                                  setEditError(null);
+                                  setDetailBooking(b);
+                                }}
+                                className="h-9 px-3 rounded-lg bg-white/70 text-[color:var(--navy)] font-semibold border border-[color:var(--border)] hover:bg-white text-sm"
+                              >
+                                Ver detalles
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
         </div>
       </div>
 
