@@ -78,6 +78,15 @@ async function main() {
     create index if not exists bookings_nombre_fecha_idx on public.bookings (nombre, fecha)
   `;
 
+  await sql`
+    alter table public.bookings
+      add column if not exists hora_inicio text not null default '13:00'
+  `;
+  await sql`
+    alter table public.bookings
+      add column if not exists hora_fin text not null default '14:30'
+  `;
+
   console.log("Listo: tabla public.bookings e índices creados (o ya existían).");
 }
 

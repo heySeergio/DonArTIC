@@ -70,6 +70,13 @@ export function isFutureDate(date: Date): boolean {
   return isAfter(date, now);
 }
 
+/** Misma fecha o posterior (solo día civil, según calendario local del servidor). */
+export function isTodayOrFutureCalendarDate(date: Date): boolean {
+  const ymd = toISODate(date);
+  const today = toISODate(new Date());
+  return ymd >= today;
+}
+
 export function isPastDate(date: Date): boolean {
   const now = new Date();
   return !isAfter(date, now);
@@ -154,7 +161,6 @@ const WORKSHOP_ALLOWED_ISO_DATES_2026 = new Set<string>([
   "2026-05-22",
   "2026-05-25",
   "2026-05-27",
-  "2026-05-29",
 
 ]);
 

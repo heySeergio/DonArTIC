@@ -11,6 +11,8 @@ import {
 import {
   isBookingDay,
   isFutureDate,
+  isTodayOrFutureCalendarDate,
+  isValidTimeHHMM,
   isWorkshopAllowedISO,
   parseISODate,
   toISODate,
@@ -116,8 +118,18 @@ export async function POST(request: Request) {
     idea?: string;
     num_alumnos?: number;
     asAdmin?: boolean;
+    hora_inicio?: string;
+    hora_fin?: string;
   };
   const asAdmin = Boolean((body as { asAdmin?: boolean }).asAdmin);
+  const horaInicioRaw =
+    typeof (body as { hora_inicio?: string }).hora_inicio === "string"
+      ? (body as { hora_inicio: string }).hora_inicio.trim()
+      : "";
+  const horaFinRaw =
+    typeof (body as { hora_fin?: string }).hora_fin === "string"
+      ? (body as { hora_fin: string }).hora_fin.trim()
+      : "";
 
   if (asAdmin) {
     const adminError = requireAdmin(request);
@@ -140,11 +152,25 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!isFutureDate(parsedDate)) {
+  if (asAdmin) {
+    if (!isTodayOrFutureCalendarDate(parsedDate)) {
+      return NextResponse.json(
+        { error: "La fecha no puede ser pasada." },
+        { status: 400 }
+      );
+    }
+  } else if (!isFutureDate(parsedDate)) {
     return NextResponse.json(
       { error: "La fecha debe ser futura." },
       { status: 400 }
     );
+  }
+
+  if (horaInicioRaw && !isValidTimeHHMM(horaInicioRaw)) {
+    return NextResponse.json({ error: "Hora de inicio inválida (usa HH:mm)." }, { status: 400 });
+  }
+  if (horaFinRaw && !isValidTimeHHMM(horaFinRaw)) {
+    return NextResponse.json({ error: "Hora de fin inválida (usa HH:mm)." }, { status: 400 });
   }
 
   const normalizedFecha = toISODate(parsedDate);
@@ -171,6 +197,8 @@ export async function POST(request: Request) {
       nombre,
       idea,
       num_alumnos,
+      ...(horaInicioRaw ? { hora_inicio: horaInicioRaw } : {}),
+      ...(horaFinRaw ? { hora_fin: horaFinRaw } : {}),
     });
 
     if (!result.ok) {

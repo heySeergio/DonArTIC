@@ -1,5 +1,9 @@
 import type { Booking } from "@/lib/types";
 import type { NeonSql } from "@/lib/db";
+import {
+  DEFAULT_BOOKING_END_TIME,
+  DEFAULT_BOOKING_START_TIME,
+} from "@/lib/dates";
 
 function isUniqueViolation(e: unknown): boolean {
   return (
@@ -27,6 +31,8 @@ export async function repoListAllBookings(sql: NeonSql): Promise<Booking[]> {
       nombre,
       idea,
       num_alumnos,
+      hora_inicio,
+      hora_fin,
       status
     FROM bookings
     ORDER BY fecha ASC
@@ -48,6 +54,8 @@ export async function repoGetActiveBookingByFecha(
       nombre,
       idea,
       num_alumnos,
+      hora_inicio,
+      hora_fin,
       status
     FROM bookings
     WHERE fecha = ${fechaISO}::date
@@ -80,6 +88,8 @@ export async function repoListBookingsByAulaAndNombre(
       nombre,
       idea,
       num_alumnos,
+      hora_inicio,
+      hora_fin,
       status
     FROM bookings
     WHERE aula = ${aula} AND nombre = ${nombre}
@@ -101,6 +111,8 @@ export async function repoListBookingsByAula(
       nombre,
       idea,
       num_alumnos,
+      hora_inicio,
+      hora_fin,
       status
     FROM bookings
     WHERE aula = ${aula}
@@ -151,15 +163,19 @@ export async function repoInsertBooking(
     hora_fin?: string;
   }
 ): Promise<{ ok: true; booking: Booking } | { ok: false; uniqueViolation: boolean; message: string }> {
+  const horaInicio = row.hora_inicio ?? DEFAULT_BOOKING_START_TIME;
+  const horaFin = row.hora_fin ?? DEFAULT_BOOKING_END_TIME;
   try {
     const rows = await sql`
-      INSERT INTO bookings (fecha, aula, nombre, idea, num_alumnos)
+      INSERT INTO bookings (fecha, aula, nombre, idea, num_alumnos, hora_inicio, hora_fin)
       VALUES (
         ${row.fecha}::date,
         ${row.aula},
         ${row.nombre},
         ${row.idea},
-        ${row.num_alumnos}
+        ${row.num_alumnos},
+        ${horaInicio},
+        ${horaFin}
       )
       RETURNING
         id,
@@ -169,6 +185,8 @@ export async function repoInsertBooking(
         nombre,
         idea,
         num_alumnos,
+        hora_inicio,
+        hora_fin,
         status
     `;
     const list = rows as unknown as Booking[];
@@ -210,6 +228,8 @@ export async function repoGetBookingById(
       nombre,
       idea,
       num_alumnos,
+      hora_inicio,
+      hora_fin,
       status
     FROM bookings
     WHERE id = ${id}::uuid
@@ -235,6 +255,8 @@ export async function repoDeleteBooking(
         nombre,
         idea,
         num_alumnos,
+        hora_inicio,
+        hora_fin,
         status
     `;
     const list = rows as unknown as Booking[];
@@ -266,6 +288,8 @@ export async function repoUpdateBookingStatus(
         nombre,
         idea,
         num_alumnos,
+        hora_inicio,
+        hora_fin,
         status
     `;
     const list = rows as unknown as Booking[];
@@ -296,7 +320,9 @@ export async function repoUpdateBookingDetails(
       UPDATE bookings
       SET fecha = ${changes.fecha}::date,
           aula = ${changes.aula},
-          num_alumnos = ${changes.num_alumnos}
+          num_alumnos = ${changes.num_alumnos},
+          hora_inicio = ${changes.hora_inicio},
+          hora_fin = ${changes.hora_fin}
       WHERE id = ${id}::uuid
       RETURNING
         id,
@@ -306,6 +332,8 @@ export async function repoUpdateBookingDetails(
         nombre,
         idea,
         num_alumnos,
+        hora_inicio,
+        hora_fin,
         status
     `;
     const list = rows as unknown as Booking[];
