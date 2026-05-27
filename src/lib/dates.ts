@@ -122,7 +122,7 @@ export function chunkWeeks(days: Date[]): Date[][] {
 
 // Calendario laboral (según captura del usuario) para 2026:
 // Se permiten únicamente las celdas "Días laborables" (rosas) en el rango
-// de marzo a mayo. En esta app los talleres ocurren L/M/X/V.
+// de marzo a junio. Lunes y martes habilitados en rango; viernes y miércoles según set.
 // el set contiene únicamente esas fechas laborables.
 const WORKSHOP_ALLOWED_ISO_DATES_2026 = new Set<string>([
   // Marzo (L/X/V)
@@ -162,26 +162,50 @@ const WORKSHOP_ALLOWED_ISO_DATES_2026 = new Set<string>([
   "2026-05-25",
   "2026-05-27",
 
+  // Junio (L/X/V)
+  "2026-06-01",
 ]);
 
 export function isWorkshopAllowedISO(isoDate: string): boolean {
   const normalized = isoDate.slice(0, 10);
-  if (WORKSHOP_ALLOWED_ISO_DATES_2026.has(normalized)) return true;
-  if (normalized < WORKSHOP_ALLOWED_RANGE.minISO || normalized > WORKSHOP_ALLOWED_RANGE.maxISO) {
+  if (
+    normalized < WORKSHOP_ALLOWED_RANGE.minISO ||
+    normalized > WORKSHOP_ALLOWED_RANGE.maxISO ||
+    normalized > WORKSHOP_BOOKING_LAST_ISO
+  ) {
     return false;
   }
-  // El usuario pidió habilitar martes además de las fechas laborables predefinidas.
+  if (isWorkshopRedHighlightISO(normalized)) return false;
+
   const parsed = parseISODate(normalized);
-  return parsed?.getDay() === 2;
+  if (!parsed) return false;
+  const weekday = parsed.getDay();
+  if (weekday === 1 || weekday === 2) return true;
+  if (WORKSHOP_ALLOWED_ISO_DATES_2026.has(normalized)) return true;
+  return false;
 }
 
 export function isWorkshopAllowedDate(date: Date): boolean {
   return isWorkshopAllowedISO(toISODate(date));
 }
 
+/** Último día en que se puede reservar taller (inclusive). */
+export const WORKSHOP_BOOKING_LAST_ISO = "2026-06-04";
+
+/** Único día resaltado en rojo en el calendario (no reservable). */
+export const WORKSHOP_RED_HIGHLIGHT_ISO = "2026-06-03";
+
+export function isWorkshopRedHighlightISO(isoDate: string): boolean {
+  return isoDate.slice(0, 10) === WORKSHOP_RED_HIGHLIGHT_ISO;
+}
+
+export function isWorkshopRedHighlightDate(date: Date): boolean {
+  return isWorkshopRedHighlightISO(toISODate(date));
+}
+
 export const WORKSHOP_ALLOWED_RANGE = {
   minISO: "2026-03-01",
-  maxISO: "2026-05-31",
+  maxISO: "2026-06-30",
 };
 
 

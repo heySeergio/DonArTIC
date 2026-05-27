@@ -9,6 +9,7 @@ import {
   getMonthRangeGrid,
   isBookingDay,
   isWorkshopAllowedDate,
+  isWorkshopRedHighlightISO,
   isPastDate,
   normalizeBookingFechaKey,
   parseISODate,
@@ -178,6 +179,7 @@ export default function AdminCalendar({
               const booked = bookingsByDate[iso];
               const isSelected = selectedISO === iso;
               const allowed = isWorkshopAllowedDate(date);
+              const redHighlight = inMonth && isWorkshopRedHighlightISO(iso) && !booked;
               const isToday = iso === todayISO;
               const accentColor = booked
                 ? bookingAulaAccentColor(booked.aula)
@@ -209,11 +211,13 @@ export default function AdminCalendar({
                       ? "bg-[color:var(--brown)] border-[color:var(--brown)] text-white"
                       : booked
                         ? "bg-white border-[color:var(--border)] hover:bg-[color:var(--cyan)]/10"
-                      : inMonth && allowed && isBookingDay(date)
-                        ? past
-                          ? "bg-white/60 border-[color:var(--border)] text-[color:var(--muted)] cursor-not-allowed"
-                          : "bg-white/70 border-[color:var(--border)] text-[color:var(--text)] hover:bg-[color:var(--cyan)]/10"
-                        : "bg-transparent border-transparent text-[color:var(--muted)] cursor-not-allowed"
+                      : redHighlight
+                        ? "bg-red-50 border-red-300 text-red-800 cursor-not-allowed"
+                        : inMonth && allowed && isBookingDay(date)
+                          ? past
+                            ? "bg-white/60 border-[color:var(--border)] text-[color:var(--muted)] cursor-not-allowed"
+                            : "bg-white/70 border-[color:var(--border)] text-[color:var(--text)] hover:bg-[color:var(--cyan)]/10"
+                          : "bg-transparent border-transparent text-[color:var(--muted)] cursor-not-allowed"
                   }`}
                   style={
                     booked && accentColor

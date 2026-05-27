@@ -11,6 +11,8 @@ import {
   getMonthRangeGrid,
   isBookingDay,
   isWorkshopAllowedDate,
+  isWorkshopRedHighlightDate,
+  isWorkshopRedHighlightISO,
   isPastDate,
   toISODate,
   WORKSHOP_ALLOWED_RANGE,
@@ -248,10 +250,15 @@ export default function CalendarGrid({
               }
 
               if (!allowed) {
+                const redHighlight = isWorkshopRedHighlightISO(iso);
                 return (
                   <div
                     key={iso}
-                    className={`${baseClasses} bg-white/50 border-[color:var(--border)] text-[color:var(--muted)] cursor-not-allowed`}
+                    className={`${baseClasses} cursor-not-allowed ${
+                      redHighlight
+                        ? "bg-red-50 border-red-300 text-red-800"
+                        : "bg-white/50 border-[color:var(--border)] text-[color:var(--muted)]"
+                    }`}
                   >
                     {isToday ? (
                       <span
@@ -404,7 +411,10 @@ export default function CalendarGrid({
           ) : (
             weeks.map((week, wIdx) => {
               const inMonthBookingDays = week.filter(
-                (d) => sameMonth(d) && isBookingDay(d) && isWorkshopAllowedDate(d)
+                (d) =>
+                  sameMonth(d) &&
+                  isBookingDay(d) &&
+                  (isWorkshopAllowedDate(d) || isWorkshopRedHighlightDate(d))
               );
               if (inMonthBookingDays.length === 0) return null;
 
@@ -430,14 +440,18 @@ export default function CalendarGrid({
                       const cooldownBlocked = cooldownUntilISO
                         ? iso < cooldownUntilISO
                         : false;
-                      const disabled = past || !!booked || cooldownBlocked;
+                      const redHighlight = isWorkshopRedHighlightDate(d);
+                      const disabled =
+                        past || !!booked || cooldownBlocked || redHighlight;
 
                       const dayLabel =
                         d.getDay() === 1
                           ? "Lunes"
-                          : d.getDay() === 3
-                            ? "Miércoles"
-                            : "Viernes";
+                          : d.getDay() === 2
+                            ? "Martes"
+                            : d.getDay() === 3
+                              ? "Miércoles"
+                              : "Viernes";
 
                       return (
                         <button
@@ -450,11 +464,13 @@ export default function CalendarGrid({
                               ? "bg-[color:var(--brown)] border-[color:var(--brown)] text-white"
                               : booked
                                 ? "bg-white/50 border-[color:var(--border)] text-[color:var(--muted)] cursor-not-allowed"
-                                : past
+                                : redHighlight
+                                  ? "bg-red-50 border-red-300 text-red-800 cursor-not-allowed"
+                                  : past
                                   ? "bg-[color:var(--border)]/80 border-[color:var(--border)] text-[color:var(--muted)] cursor-not-allowed"
                                   : cooldownBlocked
                                     ? "bg-[color:var(--border)]/55 border-[color:var(--border)] text-[color:var(--muted)] cursor-not-allowed"
-                                  : "bg-white/70 border-[color:var(--border)] text-[color:var(--text)] hover:bg-[color:var(--cyan)]/15"
+                                    : "bg-white/70 border-[color:var(--border)] text-[color:var(--text)] hover:bg-[color:var(--cyan)]/15"
                           }`}
                           title={
                             booked
