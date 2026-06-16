@@ -7,8 +7,9 @@ const headings = Fraunces({ subsets: ["latin"], variable: "--font-fraunces" });
 const bodyFont = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans" });
 
 export const metadata: Metadata = {
-  title: "DonArTIC Reservas",
-  description: "Reservas de talleres de arte · CEE Príncipe Don Juan",
+  title: "DonArTIC",
+  description:
+    "DonArTIC ha dejado de ofrecer servicios. Gracias a todos los profesores y alumnos por ser participes del proyecto.",
 };
 
 export default function RootLayout({
